@@ -38,13 +38,17 @@ The frontend is not coded yet
 
 ## TODO ##
 
-* Tests
-* Input Validation
-* Error HTTP status
-* return error if content type is not json
-* Status constants map
-* implement delete many
-* continue frontend
+* BE: Tests
+* BE: Input Validation
+* BE: Error HTTP status
+* BE: return error if content type is not json
+* BE: Status constants map
+* BE: implement delete many
+* FE: implement change order method
+* FE: display item with CHECKED status strike through
+* FE: call toggleStatus on click of item
+* FE: call change order on drag and drop
+
 
 ## License ##
 
