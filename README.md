@@ -18,7 +18,7 @@ The backend is written in golang with the echo framework
 
 ### API ###
 
-* show all items, possibility to filter by status, order alphabetically or by dateor orderno  (default)
+* show all items, possibility to filter by status, order alphabetically or by date or orderno  (default)
 * add item
 * change item
 * delete item
@@ -40,10 +40,11 @@ The frontend is not coded yet
 
 * Tests
 * Input Validation
+* Error HTTP status
+* return error if content type is not json
 * Status constants map
-* JSON Bind of body in struct does not work work
 * implement delete many
-* implement frontend
+* continue frontend
 
 ## License ##
 
