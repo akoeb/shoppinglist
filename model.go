@@ -2,8 +2,14 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 )
 
+// AllowedStatusCodes for checking that statuses are always correct
+var AllowedStatusCodes = []string{"OPEN", "CHECKED"}
+
+// Item is our shopping list item
 type Item struct {
 	ID      int    `json:"id"`
 	Title   string `json:"title"`
@@ -11,11 +17,38 @@ type Item struct {
 	Orderno int    `json:"orderno"`
 }
 
+// Valid tells you whether an item is valid
+func (i *Item) Valid() (bool, []string) {
+	// required:
+	var errors []string
+	if i.Title == "" {
+		errors = append(errors, "Title is missing")
+	}
+	if i.Status != AllowedStatusCodes[0] && i.Status != AllowedStatusCodes[1] {
+		errors = append(errors, fmt.Sprintf("Status is of wrong format, only following are allowed: %s", strings.Join(AllowedStatusCodes, ", ")))
+	}
+	if len(errors) > 0 {
+		return false, errors
+	}
+	return true, errors
+}
+
+// ItemCollection is a collection of shopping list items
 type ItemCollection struct {
 	Items []Item `json:"items"`
 }
 
-// Get all Items from database
+// Valid tells you whether all items in the collection are valid
+func (i *ItemCollection) Valid() bool {
+	for _, item := range i.Items {
+		if ok, _ := item.Valid(); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// GetAllItems from database
 func GetAllItems(db *sql.DB) (ItemCollection, error) {
 	result := ItemCollection{}
 	sql := "SELECT id, title, status, orderno FROM items"
@@ -39,8 +72,8 @@ func GetAllItems(db *sql.DB) (ItemCollection, error) {
 	return result, nil
 }
 
-// Get all Items from database
-func GetItemById(db *sql.DB, id int) (Item, error) {
+// GetItemByID loads one item from database, identified by its id
+func GetItemByID(db *sql.DB, id int) (Item, error) {
 	result := Item{}
 	sql := "SELECT id, title, status, orderno FROM items WHERE id = ?"
 	rows, err := db.Query(sql, id)
@@ -61,6 +94,9 @@ func GetItemById(db *sql.DB, id int) (Item, error) {
 	return result, nil
 }
 
+// UpsertItem writes an item to database.
+// Whether to INSRT or UPDATE is determined by the existence if its ID field
+// modifies the item, adds the ID on creates.
 func UpsertItem(db *sql.DB, item *Item) error {
 
 	doInsert := true
@@ -105,7 +141,9 @@ func UpsertItem(db *sql.DB, item *Item) error {
 	}
 	return nil
 }
-func DeleteItemById(db *sql.DB, id int) (int, error) {
+
+// DeleteItemByID deletes one item from the database, identified by its id
+func DeleteItemByID(db *sql.DB, id int) (int, error) {
 
 	sql := "DELETE FROM items WHERE id = ?"
 

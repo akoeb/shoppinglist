@@ -39,8 +39,6 @@ The frontend is not coded yet
 ## TODO ##
 
 * BE: Tests
-* BE: Input Validation
-* BE: Error HTTP status
 * BE: return error if content type is not json
 * BE: Status constants map
 * BE: implement delete many
@@ -48,7 +46,6 @@ The frontend is not coded yet
 * FE: display item with CHECKED status strike through
 * FE: call toggleStatus on click of item
 * FE: call change order on drag and drop
-
 
 ## License ##
 
