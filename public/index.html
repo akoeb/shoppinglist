@@ -17,19 +17,30 @@
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
 
         <!-- Vue.js -->
-        <script src="http://cdnjs.cloudflare.com/ajax/libs/vue/1.0.24/vue.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/0.7.0/vue-resource.min.js"></script>
+        <!-- script src="https://cdn.jsdelivr.net/npm/vue-template-compiler"></script -->
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <!-- script src="https://github.com/vuejs/vue-devtools"></script -->
     </head>
     <body>
+        <style>
+            .status-checked {
+                text-decoration: line-through;
+            }
+            .status-open {
+                text-decoration: none;
+            }
+        </style>
+            
         <div class="container">
             <div class="row">
                 <div class="col-md-4">
+                    <div id="databinding">
                     <h2>Shopping List</h2>
                     <ul class="list-group">
-                        <li class="list-group-item" v-for="item in shoppingItems">
-                            {{ item.title }}
+                        <li class="list-group-item" v-for="item in shoppingItems" :key="item.id">
+                                <span v-on:click="toggleStatus(item.id)" v-bind:class="{'status-checked': item.status === 'CLOSED' }">{{ item.title }}</span>
                             <span class="pull-right">
-                                <button class="btn btn-xs btn-danger" v-on:click="deleteItem($index)">
+                                <button class="btn btn-xs btn-danger" v-on:click="deleteItem(item.id)">
                                     <i class="fa fa-trash-o" aria-hidden="true"></i>
                                 </button>
                             </span>
@@ -38,73 +49,120 @@
                     <div class="input-group">
                         <input type="text" 
                             class="form-control" 
-                            placeholder="New Item" 
-                            v-on:keyup.enter="addItem"
+                            placeholder="New Item" v-on:keyup.enter="addItem"
                             v-model="newItem.title">
                         <span class="input-group-btn">
                             <button class="btn btn-primary" type="button" v-on:click="addItem">Create</button>
                         </span>
                     </div><!-- /input-group -->
+                    </div>
                 </div>
             </div>
         </div>
         <script>
-            new Vue({
-                el: 'body',
+            // this function returns an object that is suitable to be put in the 
+            // fetch api as options
+            function httpOptions(m, obj) {
+                // this object will be returned
+                options = {
+                    method: m !== undefined ? m : "GET",
+                    mode: "cors",
+                    cache: "no-cache",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8",
+                    },
+                    redirect: "follow",
+                }
+                if (obj !== undefined) {
+                    options.body = JSON.stringify(obj)
+                }
+                return options
+            }
 
-                data: {
-                    shoppingItems: [],
-                    newItem: {}
+            // development mode, must be removed in prod
+            Vue.config.devtools = true
+
+            // here we initialize the vue object
+            var app = new Vue({
+                // everything from this element downwards is treated as vue template
+                el: '#databinding',
+                // this defines the data on whiche vue listens
+                data() {
+                    return {
+                        shoppingItems: [],
+                        newItem: {},
+                    }
                 },
-
                 // this happens on load of the page
                 created: function() {
-                    this.$http.get('/items').then(function(response) {
-                        this.shoppingItems = response.data.items ? response.data.items : []
-                    })
+                    this.loadAll()
                 },
-
+                // define the methods
                 methods: {
+                    // load all items
+                    loadAll: function() {
+                        fetch('/items', httpOptions())
+                            .then((res)  => res.json())
+                            .then((json) => {
+                                this.shoppingItems = json.items ? json.items : []
+                            })
+                            .catch((err) => console.error(err))
+                    },
+
                     // create an item
                     addItem: function() {
+                        // if title is empty we do not do anything
                         if (!$.trim(this.newItem.title)) {
                             this.newItem = {}
                             return
                         }
+                        // add item status and ordering
                         this.newItem.status = "OPEN"
                         this.newItem.orderno = 0
-                        this.$http.post('/items', this.newItem).success(function(response) {
-                            this.newItem.id = response.id
+
+                        // now send it to backend
+                        fetch('/items', httpOptions("POST", this.newItem))
+                        .then((res)  => res.json())
+                        .then((json) => {
+                            // send successful, add the item to vue data array so it reflects on the page
+                            this.newItem.id = json.id
                             this.shoppingItems.push(this.newItem)
+                            // this is not needed any more
                             this.newItem = {}
-                        }).error(function(error) {
-                            console.log(error)
-                        });
-                    },
-                    // delete an item
-                    deleteItem: function(index) {
-                        this.$http.delete('/items/' + this.shoppingItems[index].id).success(function(response) {
-                            this.shoppingItems.splice(index, 1)
-                        }).error(function(error) {
-                            console.log(error)
                         })
+                        .catch((err) => console.error(err))
+                    },
+
+                    // delete an item
+                    deleteItem: function(id) {
+                        // get the position of the item in the array:
+                        let index = this.shoppingItems.findIndex(x => x.id == id)
+                        // send te delete request to backend, if successful remove the item from vue data array
+                        fetch('/items/' + id, httpOptions("DELETE"))
+                        .then((res) => this.shoppingItems.splice(index, 1))
+                        .catch((err) =>  console.log(error))
                     },
                     // update status
-                    toggleStatus: function(index) {
-                        status = "CHECKED"
-                        if (this.shoppingItems.status === "CHECKED") {
-                            status = "OPEN"
+                    toggleStatus: function(id) {
+                        // get a reference to the item with this id
+                        let item = this.shoppingItems.find(x => x.id === id)
+                        // copy the item by value ("clone")
+                        let toChange = Object.assign({}, item)
+                        // change status of the clone
+                        if (toChange.status === "CLOSED") {
+                            toChange.status = "OPEN"
+                        } else {
+                            toChange.status = "CLOSED"
                         }
-                        toChange = this.shoppingItems[index]
-                        toChange.status = status
-                        this.$http.put('/items/' + this.shoppingItems[index].id, toChange).success(function(response) {
-                            this.shoppingItems[index] = toChange
-                        }).error(function(error) {
-                            console.log(error)
+                        // replace the object by the clone in the backend
+                        fetch('/items/' + id, httpOptions("PUT", toChange))
+                        .then((res) => {
+                            // after the call to the backend was successful, change status in object so it reflects on the page
+                            item.status = toChange.status
                         })
+                        .catch((err) => console.log(error))
                     },
-                    // change order
-
                 }
             })
         </script>
