@@ -43,9 +43,9 @@ The frontend is not coded yet
 * BE: Status constants map
 * BE: implement delete many
 * FE: implement change order method
-* FE: display item with CHECKED status strike through
-* FE: call toggleStatus on click of item
 * FE: call change order on drag and drop
+* Implement server push events when some other device changes the list
+* FE: mobile friendly
 
 ## License ##
 
