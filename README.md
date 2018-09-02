@@ -39,8 +39,6 @@ The frontend is not coded yet
 ## TODO ##
 
 * BE: Tests
-* BE: Input Validation
-* BE: Error HTTP status
 * BE: return error if content type is not json
 * BE: Status constants map
 * BE: implement delete many
@@ -49,7 +47,6 @@ The frontend is not coded yet
 * FE: replace bootstrap so we do not need jquery
 * Implement server push events when some other device changes the list
 * FE: mobile friendly
-
 
 ## License ##
 
