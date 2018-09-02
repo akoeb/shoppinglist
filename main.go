@@ -57,15 +57,23 @@ func main() {
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+
+	// CORS header
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
 	}))
 
+	// routes for static files
+	e.Static("/", "public")
+
+	// apis have their own middlewares: group them
+	apis := e.Group("/items")
+
 	// only allow application/json content type:
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+	apis.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ctx echo.Context) error {
-			if ctx.Request.Header("content-type") != "application/json" {
+			if ctx.Request().Header.Get("content-type") != "application/json" {
 				return echo.NewHTTPError(http.StatusUnsupportedMediaType, "we only accept JSON data, sorry.")
 			}
 			// For valid credentials call next
@@ -74,13 +82,12 @@ func main() {
 	})
 
 	// Routes
-	e.File("/", "public/index.html")
-	e.GET("/items", showAllItems(db))
-	e.GET("/items/:id", showOneItem(db))
-	e.POST("/items", createItem(db))
-	e.PUT("/items/:id", updateItem(db))
-	e.DELETE("/items/:id", deleteOneItem(db))
-	e.DELETE("/items", deleteManyItems(db))
+	apis.GET("", showAllItems(db))
+	apis.GET("/:id", showOneItem(db))
+	apis.POST("", createItem(db))
+	apis.PUT("/:id", updateItem(db))
+	apis.DELETE("/:id", deleteOneItem(db))
+	apis.DELETE("", deleteManyItems(db))
 
 	// Start server
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", *options.Port)))

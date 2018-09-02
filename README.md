@@ -42,6 +42,7 @@ The frontend is not coded yet
 * BE: return error if content type is not json
 * BE: Status constants map
 * BE: implement delete many
+* BE: catch trailing slash
 * FE: implement change order method
 * FE: call change order on drag and drop
 * FE: replace bootstrap so we do not need jquery
