@@ -38,16 +38,22 @@ The frontend is not coded yet
 
 ## TODO ##
 
+* Continue this Drag&Drop sh...
+  => how to determine position? before or after element? dragover direction?
+  => add dropzone to the correct position in shopping items
+  => dropzone with event handlers drop and ondragover
+  => call reOrderitems when item is dropped
+
 * BE: Tests
-* BE: return error if content type is not json
-* BE: Status constants map
 * BE: implement delete many
 * BE: catch trailing slash
-* FE: implement change order method
-* FE: call change order on drag and drop
+* BE: reOrderItems in a transaction
+
 * FE: replace bootstrap so we do not need jquery
-* Implement server push events when some other device changes the list
 * FE: mobile friendly
+* FE: refactor reorderItems method
+
+* BOTH: Implement server push events when some other device changes the list
 
 ## License ##
 

@@ -108,11 +108,36 @@ func deleteOneItem(db *sql.DB) echo.HandlerFunc {
 		}
 		_, err = DeleteItemByID(db, id)
 		if err != nil {
-			ctx.Logger().Infof("ideleteItem: Database Error %v", err)
+			ctx.Logger().Infof("deleteItem: Database Error %v", err)
 			return echo.NewHTTPError(http.StatusInternalServerError, "Could not delete item")
 
 		}
 		return ctx.NoContent(http.StatusNoContent)
+	}
+}
+
+func reorderItems(db *sql.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		// this request has only a map[int]int as payload:
+		var objmap map[int]int
+		err := ctx.Bind(&objmap)
+		if err != nil {
+			ctx.Logger().Infof("reorderItems: Can not deserialize to map %v", err)
+			return echo.NewHTTPError(http.StatusBadRequest, "wrong payload")
+
+		}
+		err = reOrderItems(db, objmap)
+		if err != nil {
+			ctx.Logger().Infof("reorderItems: Database Error %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not reorder items")
+
+		}
+		items, err := GetAllItems(db)
+		if err != nil {
+			ctx.Logger().Infof("reorderItems: Database Error %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not read items")
+		}
+		return ctx.JSON(http.StatusOK, items)
 	}
 }
 

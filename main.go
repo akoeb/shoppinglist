@@ -85,6 +85,7 @@ func main() {
 	apis.GET("", showAllItems(db))
 	apis.GET("/:id", showOneItem(db))
 	apis.POST("", createItem(db))
+	apis.POST("/reorder", reorderItems(db))
 	apis.PUT("/:id", updateItem(db))
 	apis.DELETE("/:id", deleteOneItem(db))
 	apis.DELETE("", deleteManyItems(db))

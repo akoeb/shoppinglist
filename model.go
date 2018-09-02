@@ -51,7 +51,7 @@ func (i *ItemCollection) Valid() bool {
 // GetAllItems from database
 func GetAllItems(db *sql.DB) (ItemCollection, error) {
 	result := ItemCollection{}
-	sql := "SELECT id, title, status, orderno FROM items"
+	sql := "SELECT id, title, status, orderno FROM items ORDER BY orderno, id"
 	rows, err := db.Query(sql)
 	// Exit if the SQL doesn't work for some reason
 	if err != nil {
@@ -196,4 +196,32 @@ func deleteManyItemsByStatus(db *sql.DB, status string) (int, error) {
 	}
 
 	return int(numDeleted), nil
+}
+
+func reOrderItems(db *sql.DB, items map[int]int) error {
+
+	sql := "UPDATE items set orderno = ? where id = ?"
+
+	// Create a prepared SQL statement
+	stmt, err := db.Prepare(sql)
+
+	// Exit if we get an error
+	if err != nil {
+		return err
+	}
+
+	// Make sure to cleanup after the program exits
+	defer stmt.Close()
+
+	// Execute
+	for k, v := range items {
+		_, err := stmt.Exec(v, k)
+
+		// Exit if we get an error
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

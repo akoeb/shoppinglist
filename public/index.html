@@ -33,8 +33,8 @@
                 <div class="col-md-4">
                     <div id="databinding">
                     <h2>Shopping List</h2>
-                    <ul class="list-group">
-                        <li class="list-group-item" v-for="item in sortedList" :key="item.id" draggable="true">
+                    <ul class="list-group" id="listgroup">
+                        <li class="list-group-item" v-for="item in shoppingItems" :id="getItemId(item.id)" :key="item.id" draggable="true" v-on:dragstart="dragstart" v-on:dragenter="dragenter" v-on:dragleave="dragleave">
                                 <span v-on:click="toggleStatus(item.id)" v-bind:class="{'status-checked': isClosed(item) }">{{ item.title }}</span>
                             <span class="pull-right">
                                 <button class="btn btn-xs btn-danger" v-on:click="deleteItem(item.id)">
@@ -57,6 +57,10 @@
             </div>
         </div>
         <script>
+            function drop(event) {
+                console.log("DROP OUTSIDE")
+                event.preventDefault()
+            }
             // this function returns an object that is suitable to be put in the 
             // fetch api as options
             function httpOptions(m, obj) {
@@ -164,18 +168,137 @@
                     // return true if the item status is closed
                     isClosed: function(item) {
                         return item.status === "CLOSED"
+                    },
+                    // calculate order based on the old and new indices on item rearrangement
+                    // TODO: could be more elegant
+                    reOrderItems: function(oldIndex, newIndex) {
+                        // dont do anything if the position old and new are equal
+                        if (oldIndex == newIndex) {
+                            return
+                        }
+                        // old position can not be smaller or bigger than amount of items
+                        if (oldIndex >= this.shoppingItems.length || oldIndex < 0) {
+                            console.error("oldIndex out of range")
+                            return
+                        }
+                        // same true for new position
+                        if (newIndex >= this.shoppingItems.length || newIndex < 0) {
+                            console.error("newIndex out of range")
+                            return
+                        }
+                        // store the result in this object:
+                        reorder = {}
+
+                        // move item from smaller to bigger position:
+                        if (oldIndex < newIndex) {
+                            // loop over all items
+                            this.shoppingItems.forEach(function(x, idx) {
+                                // item positions outside the moving zone are untpuched
+                                if (idx < oldIndex || idx > newIndex) {
+                                    reorder[x.id] = idx
+                                } 
+                                // the item at the old position gets new position:
+                                else if(idx == oldIndex) {
+                                    reorder[x.id] = newIndex
+                                } 
+                                // all others are moving up the list one position
+                                else if (idx > oldIndex && idx <= newIndex) {
+                                    reorder[x.id] = idx - 1
+                                }
+                            })
+                        } 
+                        // other way round: item moves from bigger to smaller position:
+                        else {
+                            // loop over all items
+                            this.shoppingItems.forEach(function(x, idx) {
+                                // items outside the moving positions stay untouched
+                                if (idx < newIndex || idx > oldIndex) {
+                                    reorder[x.id] = idx
+                                } 
+                                // the item at the old position gets new position:
+                                else if (idx == oldIndex) {
+                                    reorder[x.id] = newIndex
+                                } 
+                                // all others are moving down the list one position
+                                else if (idx >= newIndex && idx < oldIndex) {
+                                    reorder[x.id] = idx + 1
+                                }
+                            })
+                        }
+
+                        // now send reorder array to backend:
+                        fetch('/items/reorder', httpOptions("POST", reorder))
+                        .then((res)  => res.json())
+                        .then((json) => {
+                            // successful backend request returns a orordered items array, reflect it in page:
+                            this.shoppingItems = json.items ? json.items : []
+                        })
+                        .catch((err) => console.error(err))
+
+                    },
+                    getItemId: function(id) {
+                        // the drop zone item has a special item id of -1, needs a special html id:
+                        if (id == -1) {
+                            return "dropzone"
+                        }
+                        // all others get an html id derived from their item position:
+                        return "item_" + this.shoppingItems.findIndex(x => x.id == id)
+                    },
+                    dragstart: function(event) {
+                        console.log("DRAGSTART")
+                        event.dataTransfer.setData("text", event.target.id);
+
+                    },
+                    dragenter: function(event) {
+                        console.log("DRAGENTER")
+                        console.log(event)
+                        // add dropzone to list:
+                        this.addDropzone(event.target.id, 'afterend')
+                        
+                    },
+                    dragleave: function(event) {
+                        /*var element = document.getElementById("dropzone");
+                        if(element) {
+                            element.parentNode.removeChild(element);
+                        }*/
+                        console.log("DRAGLEAVE")
+                        console.log(event)
+
+                    },
+                    drop: function(event) {
+                        console.log("DROP")
+                        console.log(event)
+                    },
+                    addDropzone: function(htmlId, position) {
+                        this.removeDropzone()
+                        // get item id from htmlid:
+                        var id = htmlId.split('_')[1]
+                        var index = this.shoppingItems.findIndex(x => x.id == id)
+                        console.log("add dropzone to position " + index)
+                        this.shoppingItems.splice(index, 0, {id: -1, title: "DROPZONE"})
+                        //element.insertAdjacentHTML(position, '<li id="dropzone" class="list-group-item" ondrop="drop" ondragover="dropzone">DROPZONE</li>');
+                    },
+                    removeDropzone: function() {
+                        /*var element = document.getElementById("dropzone")
+                        if(element) {
+                            element.parentNode.removeChild(element);
+                        }
+                        */
+                        var index = this.shoppingItems.findIndex(x => x.id == -1)
+                        this.shoppingItems.splice(index, 1)
                     }
                 },
                 // this is the end of the methods definition
                 // in this block we define dynamic ("computed") properties
                 computed: {
+                    /* DEPRECATED
                     sortedList: function() {
                       function compare(a, b) {
                           return a.orderno - b.orderno || a.id - b.id
-                      }
-                  
+                      }                  
                       return this.shoppingItems.sort(compare);
                     }
+                    */
                   }
             })
         </script>
