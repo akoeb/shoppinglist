@@ -26,9 +26,6 @@
             .status-checked {
                 text-decoration: line-through;
             }
-            .status-open {
-                text-decoration: none;
-            }
         </style>
             
         <div class="container">
@@ -37,8 +34,8 @@
                     <div id="databinding">
                     <h2>Shopping List</h2>
                     <ul class="list-group">
-                        <li class="list-group-item" v-for="item in shoppingItems" :key="item.id">
-                                <span v-on:click="toggleStatus(item.id)" v-bind:class="{'status-checked': item.status === 'CLOSED' }">{{ item.title }}</span>
+                        <li class="list-group-item" v-for="item in sortedList" :key="item.id" draggable="true">
+                                <span v-on:click="toggleStatus(item.id)" v-bind:class="{'status-checked': isClosed(item) }">{{ item.title }}</span>
                             <span class="pull-right">
                                 <button class="btn btn-xs btn-danger" v-on:click="deleteItem(item.id)">
                                     <i class="fa fa-trash-o" aria-hidden="true"></i>
@@ -163,7 +160,22 @@
                         })
                         .catch((err) => console.log(error))
                     },
-                }
+                    // return true if the item status is closed
+                    isClosed: function(item) {
+                        return item.status === "CLOSED"
+                    }
+                },
+                // this is the end of the methods definition
+                // in this block we define dynamic ("computed") properties
+                computed: {
+                    sortedList: function() {
+                      function compare(a, b) {
+                          return a.orderno - b.orderno || a.id - b.id
+                      }
+                  
+                      return this.shoppingItems.sort(compare);
+                    }
+                  }
             })
         </script>
     </body>

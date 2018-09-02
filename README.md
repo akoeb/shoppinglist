@@ -46,6 +46,7 @@ The frontend is not coded yet
 * BE: implement delete many
 * FE: implement change order method
 * FE: call change order on drag and drop
+* FE: replace bootstrap so we do not need jquery
 * Implement server push events when some other device changes the list
 * FE: mobile friendly
 
