@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 // Options hold global application options that can be set via CLI
@@ -63,7 +64,12 @@ func main() {
 	db := initDB(*options.DatabaseFile)
 	migrate(db)
 
+	// channel to send back and forth update notifications
+	notifier := NewNotifier()
+
 	// Middleware
+	e.AutoTLSManager.Cache = autocert.DirCache(".cache")
+	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
@@ -82,7 +88,7 @@ func main() {
 	// only allow application/json content type:
 	apis.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ctx echo.Context) error {
-			if ctx.Request().Header.Get("content-type") != "application/json" {
+			if ctx.Request().Header.Get(echo.HeaderContentType) != echo.MIMEApplicationJSON {
 				return echo.NewHTTPError(http.StatusUnsupportedMediaType, "we only accept JSON data, sorry.")
 			}
 			// For valid credentials call next
@@ -93,12 +99,16 @@ func main() {
 	// Routes
 	apis.GET("", showAllItems(db))
 	apis.GET("/:id", showOneItem(db))
-	apis.POST("", createItem(db))
-	apis.POST("/reorder", reorderItems(db))
-	apis.PUT("/:id", updateItem(db))
-	apis.DELETE("/:id", deleteOneItem(db))
-	apis.DELETE("", deleteManyItems(db))
+	apis.POST("", createItem(db, notifier))
+	apis.POST("/reorder", reorderItems(db, notifier))
+	apis.PUT("/:id", updateItem(db, notifier))
+	apis.DELETE("/:id", deleteOneItem(db, notifier))
+	apis.DELETE("", deleteManyItems(db, notifier))
+
+	// events
+	events := e.Group("/events")
+	events.GET("", eventsStream(notifier))
 
 	// Start server
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", *options.Port)))
+	e.Logger.Fatal(e.StartAutoTLS(fmt.Sprintf(":%d", *options.Port)))
 }

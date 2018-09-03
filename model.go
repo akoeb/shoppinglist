@@ -9,6 +9,15 @@ import (
 // AllowedStatusCodes for checking that statuses are always correct
 var AllowedStatusCodes = []string{"OPEN", "CHECKED"}
 
+func isAllowedStatusCode(code string) bool {
+	for _, item := range AllowedStatusCodes {
+		if code == item {
+			return true
+		}
+	}
+	return false
+}
+
 // Item is our shopping list item
 type Item struct {
 	ID      int    `json:"id"`
@@ -24,7 +33,7 @@ func (i *Item) Valid() (bool, []string) {
 	if i.Title == "" {
 		errors = append(errors, "Title is missing")
 	}
-	if i.Status != AllowedStatusCodes[0] && i.Status != AllowedStatusCodes[1] {
+	if isAllowedStatusCode(i.Status) {
 		errors = append(errors, fmt.Sprintf("Status is of wrong format, only following are allowed: %s", strings.Join(AllowedStatusCodes, ", ")))
 	}
 	if len(errors) > 0 {
@@ -172,8 +181,12 @@ func DeleteItemByID(db *sql.DB, id int) (int, error) {
 }
 func deleteManyItemsByStatus(db *sql.DB, status string) (int, error) {
 
-	sql := "DELETE FROM items WHERE status = ?"
-
+	var sql string
+	if status == "" {
+		sql = "DELETE FROM items"
+	} else {
+		sql = "DELETE FROM items WHERE status = ?"
+	}
 	// Create a prepared SQL statement
 	stmt, err := db.Prepare(sql)
 	// Exit if we get an error
@@ -203,10 +216,18 @@ func reOrderItems(db *sql.DB, items map[int]int) error {
 	sql := "UPDATE items set orderno = ? where id = ?"
 
 	// Create a prepared SQL statement
-	stmt, err := db.Prepare(sql)
+	tx, err := db.Begin()
+	// Exit if we get an error
+	if err != nil {
+		return err
+	}
+
+	// prepare statement in this transaction
+	stmt, err := tx.Prepare(sql)
 
 	// Exit if we get an error
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -219,9 +240,13 @@ func reOrderItems(db *sql.DB, items map[int]int) error {
 
 		// Exit if we get an error
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
+	// all good, commit the transaction
+	tx.Commit()
 
+	// and bye
 	return nil
 }

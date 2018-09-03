@@ -45,15 +45,16 @@ The frontend is not coded yet
   => call reOrderitems when item is dropped
 
 * BE: Tests
-* BE: implement delete many
-* BE: catch trailing slash
-* BE: reOrderItems in a transaction
+* BE: autotls with localhost and testing domains?
 
 * FE: replace bootstrap so we do not need jquery
 * FE: mobile friendly
 * FE: refactor reorderItems method
 
 * BOTH: Implement server push events when some other device changes the list
+* BOTH: Implement http base auth
+
+* test delete many with empty status
 
 ## License ##
 
