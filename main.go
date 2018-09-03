@@ -16,6 +16,7 @@ type Options struct {
 	HTTPBaseAuthUser     *string
 	HTTPBaseAuthPassword *string
 	Port                 *int
+	LogLevel             log.Lvl
 }
 
 func parseFlags() *Options {
@@ -27,9 +28,17 @@ func parseFlags() *Options {
 	options.DatabaseFile = flag.String("db", "storage.db", "The file to store the sqlite3 database")
 	options.HTTPBaseAuthUser = flag.String("user", "", "The user name for HTTP Base authentication")
 	options.HTTPBaseAuthPassword = flag.String("password", "", "The password for HTTP Base authentication")
+	debugFlag := flag.Bool("debug", false, "Activate debug logging")
 
 	// parse command line into options
 	flag.Parse()
+
+	// some options need special treatment
+	if *debugFlag {
+		options.LogLevel = log.DEBUG
+	} else {
+		options.LogLevel = log.INFO
+	}
 
 	// CLI Validation goes here
 	if *options.HTTPBaseAuthPassword == "" && *options.HTTPBaseAuthUser != "" {
@@ -48,7 +57,7 @@ func main() {
 
 	// Echo instance
 	e := echo.New()
-	e.Logger.SetLevel(log.INFO)
+	e.Logger.SetLevel(options.LogLevel)
 
 	// Database
 	db := initDB(*options.DatabaseFile)
