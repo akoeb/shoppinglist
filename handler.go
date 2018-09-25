@@ -209,6 +209,7 @@ func eventsStream(notifier *Notifier) echo.HandlerFunc {
 			}
 			ctx.Response().Flush()
 		}
-		return nil
+		// TODO: break condition in endless loop?
+		//return nil
 	}
 }

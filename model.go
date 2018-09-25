@@ -33,8 +33,8 @@ func (i *Item) Valid() (bool, []string) {
 	if i.Title == "" {
 		errors = append(errors, "Title is missing")
 	}
-	if isAllowedStatusCode(i.Status) {
-		errors = append(errors, fmt.Sprintf("Status is of wrong format, only following are allowed: %s", strings.Join(AllowedStatusCodes, ", ")))
+	if !isAllowedStatusCode(i.Status) {
+		errors = append(errors, fmt.Sprintf("Status is of wrong format (%s), only following are allowed: %s", i.Status, strings.Join(AllowedStatusCodes, ", ")))
 	}
 	if len(errors) > 0 {
 		return false, errors

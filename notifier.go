@@ -17,7 +17,8 @@ type Notifier struct {
 // NewNotifier creates and returns a notifier
 func NewNotifier() *Notifier {
 	notifier := &Notifier{
-		channel: make(chan string),
+		channel:  make(chan string),
+		Commands: make(map[string]bool),
 	}
 	// create map with allowed commands
 	for _, item := range AllowedCommands {
