@@ -1,3 +1,4 @@
+<!doctype html>
 <html>
     <head>
         <meta http-equiv="content-type" content="text/html; charset=utf-8">
@@ -5,21 +6,21 @@
         <title>TODO App</title>
 
         <!-- Latest compiled and minified CSS -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/css/bootstrap.min.css">
 
         <!-- Font Awesome -->
-        <link rel="stylesheet"  href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+        <link rel="stylesheet"  href="/css/font-awesome.min.css">
 
         <!-- JQuery -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+        <script src="/js/jquery.min.js"></script>
 
         <!-- Latest compiled and minified JavaScript -->
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <script src="/js/bootstrap.min.js"></script>
 
         <!-- Vue.js -->
         <!-- script src="https://cdn.jsdelivr.net/npm/vue-template-compiler"></script -->
-        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-        <!-- script src="https://github.com/vuejs/vue-devtools"></script -->
+        <script src="/js/vue.js"></script>
+        
     </head>
     <body>
         <style>
@@ -33,8 +34,8 @@
                 <div class="col-md-4">
                     <div id="databinding">
                     <h2>Shopping List</h2>
-                    <ul class="list-group" id="listgroup">
-                        <li class="list-group-item" v-for="item in shoppingItems" :id="getItemId(item.id)" :key="item.id" draggable="true" v-on:dragstart="dragstart" v-on:dragenter="dragenter" v-on:dragleave="dragleave">
+                    <ul class="list-group" id="listgroup" droppable=true v-on:dragover="dragover"  v-on:drop="drop">
+                            <li class="list-group-item" v-for="item in shoppingItems" :id="getItemId(item.id)" :key="item.id" draggable="true" v-on:dragstart="dragstart"  v-on:dragover="dragover" v-on:dragenter="dragenter" v-on:dragend="dragend">
                                 <span v-on:click="toggleStatus(item.id)" v-bind:class="{'status-checked': isClosed(item) }">{{ item.title }}</span>
                             <span class="pull-right">
                                 <button class="btn btn-xs btn-danger" v-on:click="deleteItem(item.id)">
@@ -42,13 +43,15 @@
                                 </button>
                             </span>
                         </li>
+                        <li class="list-group-item" id="placeholder">placeholder</li>
+                            
                     </ul>
                     <div class="input-group">
                         <input type="text" 
                             class="form-control" 
                             placeholder="New Item" v-on:keyup.enter="addItem"
                             v-model="newItem.title">
-                        <span class="input-group-btn">
+                        <span class="input-group-btn">event.preventDefault()
                             <button class="btn btn-primary" type="button" v-on:click="addItem">Create</button>
                         </span>
                     </div><!-- /input-group -->
@@ -57,10 +60,11 @@
             </div>
         </div>
         <script>
-            function drop(event) {
+/*            function drop(event) {
                 console.log("DROP OUTSIDE")
                 event.preventDefault()
             }
+            */
             // this function returns an object that is suitable to be put in the 
             // fetch api as options
             function httpOptions(m, obj) {
@@ -93,11 +97,16 @@
                     return {
                         shoppingItems: [],
                         newItem: {},
+                        dragElement: null,
+                        _dragNode: null,
+                        insertIndex: null,
+                        placeholder: document.getElementById('placeholder')
                     }
                 },
                 // this happens on load of the page
                 created: function() {
                     this.loadAll()
+                    this.reorder()
                 },
                 // define the methods
                 methods: {
@@ -244,49 +253,151 @@
                         // all others get an html id derived from their item position:
                         return "item_" + this.shoppingItems.findIndex(x => x.id == id)
                     },
+                    reorder: function() {
+                        var sty_elem, s, i$, to$, i, e, sourceIndex, rule;
+                        sty_elem = document.createElement('style');
+                        document.head.appendChild(sty_elem)
+                      
+                        sty_elem.appendChild(document.createTextNode(''))
+                        s = sty_elem.sheet
+                      
+                        for (i= 0; i<= this.shoppingItems.length; i++) {
+                          e = i
+                          if (this.dragElement != null) {
+                            sourceIndex = this.dragElement.$index
+                            if (sourceIndex < e) {
+                                --e
+                            }
+                            console.log("reorder: index "+ i+", e: " + e)
+                          }
+                          rule = '.q div:nth-child(' + (i+1) + ') {top:' + (e*50) + 'px }'
+                          s.insertRule(rule, s.cssRules.length)
+                        }
+                    },
                     dragstart: function(event) {
                         console.log("DRAGSTART")
-                        event.dataTransfer.setData("text", event.target.id);
+                        var st;
+                        this.dragElement = event.targetVM
+                        this._dragNode = event.target
 
+                        this.reorder()
+                        st = this._dragNode.style
+                        Vue.nextTick(() => {
+                          st.opacity = 0
+                          st.height = 0
+                        })
+                        console.log("before insert")
+                        //var elem = document.getElementById('listgroup')
+                        //elem.insertBefore(this.placeholder, event.target)
+                        //console.log("before insert" + elem)
+                        this.$el.querySelector('.list-group').insertBefore(this.placeholder, event.target)     
+
+                        //event.dataTransfer.setData("text", event.target.id);
                     },
-                    dragenter: function(event) {
-                        console.log("DRAGENTER")
+                    dragend: function(event) {
+                        console.log("DRAGEND")
                         console.log(event)
+                        this.$el.querySelector('.list-group').removeChild(this.placeholder)
+                        this._dragNode.style.opacity = 1
+                        this._dragNode.style.height = '50px'
+             
+                        this._dragNode = null
+                        this.dragElement = null
+                        
+                        this.reorder()
+                        event.preventDefault()
                         // add dropzone to list:
-                        this.addDropzone(event.target.id, 'afterend')
+                        //this.addDropzone(event.target.id, true)
                         
                     },
-                    dragleave: function(event) {
+/*                    dragleave: function(event) {
+                        event.preventDefault()
                         /*var element = document.getElementById("dropzone");
                         if(element) {
                             element.parentNode.removeChild(element);
-                        }*/
+                        }* /
                         console.log("DRAGLEAVE")
                         console.log(event)
 
+                    },*/
+                    dragover: function(event) {
+                        event.preventDefault()
+                        //event.dataTransfer.dropEffect = 'move'
+                        console.log("DRAGOVER")
+                        console.log(event)
+                        return true
                     },
                     drop: function(event) {
+                        event.preventDefault()
                         console.log("DROP")
                         console.log(event)
+
+                        insertIndex = this.insertIndex
+                        sourceIndex = this.dragElement.$index
+                        if(sourceIndex == insertIndex) {
+                            return
+                        }
+             
+                        removed = this.shoppingItems.splice(sourceIndex, 1)
+                        this.shoppingItems.splice(insertIndex, 0, removed[0])
+                        
+                        this.dragend(ev)
                     },
-                    addDropzone: function(htmlId, position) {
-                        this.removeDropzone()
+                    dragenter: function(event) {
+                        console.log("DRAGENTER")
+                        var sourceIndex, insertIndex, posElem;
+                        console.log(event)
+                        //this.haveDropzone = false
+
+                        sourceIndex = this.dragElement.$index
+                        insertIndex = ev.targetVM.$index
+                        this.insertIndex = insertIndex
+             
+                        // FIXME
+                        if (sourceIndex < insertIndex) {
+                            posElem = event.target
+                        } 
+                        else {
+                            pos.Elem = event.target.previousSibling
+                        }
+                        
+                        document.getElementById('listgroup').insertBefore(this.placeholder, posElem.nextSibling)
+                        event.preventDefault()
+                        return true
+                    },
+/*                    addDropzone: function(htmlId, afterElement) {
+                        this.haveDropzone = true
+                        position = 'beforestart'
+                        if (afterElement) {
+                            position = 'afterend'
+                        }
+                        //var that = this
                         // get item id from htmlid:
-                        var id = htmlId.split('_')[1]
-                        var index = this.shoppingItems.findIndex(x => x.id == id)
-                        console.log("add dropzone to position " + index)
-                        this.shoppingItems.splice(index, 0, {id: -1, title: "DROPZONE"})
-                        //element.insertAdjacentHTML(position, '<li id="dropzone" class="list-group-item" ondrop="drop" ondragover="dropzone">DROPZONE</li>');
+                        //var id = htmlId.split('_')[1]
+                        //var index = this.shoppingItems.findIndex(x => x.id == id)
+                        console.log("add dropzone to position " + htmlId)
+                        //this.shoppingItems.splice(index, 0, {id: -1, title: "DROPZONE"})
+                        /*var element = document.getElementById(htmlId)
+                        element.insertAdjacentHTML(position, '<li id="dropzone" class="list-group-item">DROPZONE</li>');
+                        //  ondrop="drop" ondragover="dropzone"
+                        element.addEventListener('dragover', function (ev) {
+                            console.log("DRAGOVER INSIDE")
+                            ev.preventDefault()
+                        })
+                        element.addEventListener('drop', function (ev) {
+                            console.log("DROP INSIDE")
+                        })
+                        * /
                     },
                     removeDropzone: function() {
                         /*var element = document.getElementById("dropzone")
                         if(element) {
                             element.parentNode.removeChild(element);
                         }
-                        */
+                        * /
                         var index = this.shoppingItems.findIndex(x => x.id == -1)
                         this.shoppingItems.splice(index, 1)
-                    }
+                    } */
                 },
                 // this is the end of the methods definition
                 // in this block we define dynamic ("computed") properties
