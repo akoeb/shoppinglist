@@ -56,6 +56,9 @@ The frontend is not coded yet
 
 * test delete many with empty status
 
+## CHECK ##
+https://codepen.io/safx/pen/dasnt
+
 ## License ##
 
 GPLv3, see LICENSE file in this repo.
