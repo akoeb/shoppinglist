@@ -139,17 +139,31 @@ func deleteOneItem(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
 
 func reorderItems(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
+
 		// this request has only a map[int]int as payload:
-		var objmap map[int]int
-		err := ctx.Bind(&objmap)
+		// key is item id (as string, javascript facepalm), value is the new order no
+		var strmap map[string]int
+		err := ctx.Bind(&strmap)
 		if err != nil {
 			ctx.Logger().Infof("reorderItems: Can not deserialize to map %v", err)
 			return echo.NewHTTPError(http.StatusBadRequest, "wrong payload")
 
 		}
 
+		// now we copy that map into one with int keys:
+		var intmap map[int]int
+		intmap = make(map[int]int)
+		for k, v := range strmap {
+			i, err := strconv.ParseInt(k, 10, 32)
+			if err != nil {
+				ctx.Logger().Infof("reorderItems: Can not convert to int-map %v", err)
+				return echo.NewHTTPError(http.StatusBadRequest, "key is not a number: "+k)
+			}
+			intmap[int(i)] = v
+		}
+
 		// ok, do the update
-		err = reOrderItems(db, objmap)
+		err = reOrderItems(db, intmap)
 		if err != nil {
 			ctx.Logger().Infof("reorderItems: Database Error %v", err)
 			return echo.NewHTTPError(http.StatusInternalServerError, "Could not reorder items")
@@ -159,6 +173,7 @@ func reorderItems(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
 		// looks fine, notify all the listening clients:
 		notifier.Send("UPDATE")
 
+		// and inform the client
 		// read the actual list for sending back to the client
 		items, err := GetAllItems(db)
 		if err != nil {
@@ -195,14 +210,18 @@ func deleteManyItems(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
 // handle event streams:
 func eventsStream(notifier *Notifier) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
-		ctx.Response().Header().Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		ctx.Logger().Infof("eventsStream called")
+		notifier.AddReceiver()
+		ctx.Response().Header().Set(echo.HeaderContentType, "text/event-stream")
 		ctx.Response().WriteHeader(http.StatusOK)
+		ctx.Response().Flush()
 		for {
 			// listen on channel:
 			cmd := notifier.Wait()
 
 			// write message to client
 			if _, err := ctx.Response().Write([]byte(fmt.Sprintf("{\"cmd\": \"%s\"}\n\n", cmd))); err != nil {
+				notifier.RemoveReceiver()
 				msg := fmt.Sprintf("Error writing to stream: %v", err)
 				ctx.Logger().Infof("eventsStream: " + msg)
 				return echo.NewHTTPError(http.StatusInternalServerError, msg)

@@ -75,8 +75,8 @@ func main() {
 
 	// CORS header
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
+		AllowOrigins: []string{"http://127.0.0.1:8080"},
+		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE, echo.OPTIONS},
 	}))
 
 	// routes for static files

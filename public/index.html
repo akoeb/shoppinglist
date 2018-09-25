@@ -20,6 +20,12 @@
         <!-- Vue.js -->
         <!-- script src="https://cdn.jsdelivr.net/npm/vue-template-compiler"></script -->
         <script src="/js/vue.js"></script>
+
+        <!-- Sortable //cdn.jsdelivr.net/npm/sortablejs@1.7.0/Sortable.min.js -->
+        <script src="/js/Sortable.min.js"></script>
+
+        <!-- vuedraggable //cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.15.0/vuedraggable.min.js -->
+        <script src="/js/vuedraggable.min.js"></script>
         
     </head>
     <body>
@@ -34,18 +40,17 @@
                 <div class="col-md-4">
                     <div id="databinding">
                     <h2>Shopping List</h2>
-                    <ul class="list-group" id="listgroup" droppable=true v-on:dragover="dragover"  v-on:drop="drop">
-                            <li class="list-group-item" v-for="item in shoppingItems" :id="getItemId(item.id)" :key="item.id" draggable="true" v-on:dragstart="dragstart"  v-on:dragover="dragover" v-on:dragenter="dragenter" v-on:dragend="dragend">
-                                <span v-on:click="toggleStatus(item.id)" v-bind:class="{'status-checked': isClosed(item) }">{{ item.title }}</span>
+                    <draggable class="list-group" id="listgroup" v-model="shoppingItems" @end="syncOrder">
+                            <li class="list-group-item" v-for="item in shoppingItems" :id="getItemId(item.id)" :key="item.id" v-on:click="toggleStatus(item.id)" >
+                                <span v-bind:class="{'status-checked': isClosed(item) }">{{ item.title }}</span>
                             <span class="pull-right">
                                 <button class="btn btn-xs btn-danger" v-on:click="deleteItem(item.id)">
                                     <i class="fa fa-trash-o" aria-hidden="true"></i>
                                 </button>
                             </span>
                         </li>
-                        <li class="list-group-item" id="placeholder">placeholder</li>
                             
-                    </ul>
+                    </draggable>
                     <div class="input-group">
                         <input type="text" 
                             class="form-control" 
@@ -60,11 +65,6 @@
             </div>
         </div>
         <script>
-/*            function drop(event) {
-                console.log("DROP OUTSIDE")
-                event.preventDefault()
-            }
-            */
             // this function returns an object that is suitable to be put in the 
             // fetch api as options
             function httpOptions(m, obj) {
@@ -75,7 +75,7 @@
                     cache: "no-cache",
                     credentials: "same-origin",
                     headers: {
-                        "Content-Type": "application/json",
+                        "Content-Type": "application/json"
                     },
                     redirect: "follow",
                 }
@@ -97,19 +97,31 @@
                     return {
                         shoppingItems: [],
                         newItem: {},
-                        dragElement: null,
-                        _dragNode: null,
-                        insertIndex: null,
-                        placeholder: document.getElementById('placeholder')
                     }
                 },
                 // this happens on load of the page
                 created: function() {
+                    this.setupStream()
                     this.loadAll()
-                    this.reorder()
                 },
                 // define the methods
                 methods: {
+                    // setup event stream for listening on updates
+                    setupStream: function() {
+                        let es = new EventSource('/events');
+                        es.addEventListener('message', event => {
+                            let data = JSON.parse(event.data);
+                            console.log("MESSAGE: " + data)
+                        }, false);
+            
+                        es.addEventListener('error', event => {
+                            if (event.readyState == EventSource.CLOSED) {
+                                console.log('Event was closed');
+                                console.log(EventSource);
+                            }
+                        }, false);
+                    
+                    },
                     // load all items
                     loadAll: function() {
                         fetch('/items', httpOptions())
@@ -178,239 +190,41 @@
                     isClosed: function(item) {
                         return item.status === "CLOSED"
                     },
-                    // calculate order based on the old and new indices on item rearrangement
-                    // TODO: could be more elegant
-                    reOrderItems: function(oldIndex, newIndex) {
-                        // dont do anything if the position old and new are equal
-                        if (oldIndex == newIndex) {
-                            return
-                        }
-                        // old position can not be smaller or bigger than amount of items
-                        if (oldIndex >= this.shoppingItems.length || oldIndex < 0) {
-                            console.error("oldIndex out of range")
-                            return
-                        }
-                        // same true for new position
-                        if (newIndex >= this.shoppingItems.length || newIndex < 0) {
-                            console.error("newIndex out of range")
-                            return
-                        }
-                        // store the result in this object:
-                        reorder = {}
-
-                        // move item from smaller to bigger position:
-                        if (oldIndex < newIndex) {
-                            // loop over all items
-                            this.shoppingItems.forEach(function(x, idx) {
-                                // item positions outside the moving zone are untpuched
-                                if (idx < oldIndex || idx > newIndex) {
-                                    reorder[x.id] = idx
-                                } 
-                                // the item at the old position gets new position:
-                                else if(idx == oldIndex) {
-                                    reorder[x.id] = newIndex
-                                } 
-                                // all others are moving up the list one position
-                                else if (idx > oldIndex && idx <= newIndex) {
-                                    reorder[x.id] = idx - 1
-                                }
-                            })
-                        } 
-                        // other way round: item moves from bigger to smaller position:
-                        else {
-                            // loop over all items
-                            this.shoppingItems.forEach(function(x, idx) {
-                                // items outside the moving positions stay untouched
-                                if (idx < newIndex || idx > oldIndex) {
-                                    reorder[x.id] = idx
-                                } 
-                                // the item at the old position gets new position:
-                                else if (idx == oldIndex) {
-                                    reorder[x.id] = newIndex
-                                } 
-                                // all others are moving down the list one position
-                                else if (idx >= newIndex && idx < oldIndex) {
-                                    reorder[x.id] = idx + 1
-                                }
-                            })
-                        }
-
-                        // now send reorder array to backend:
-                        fetch('/items/reorder', httpOptions("POST", reorder))
-                        .then((res)  => res.json())
-                        .then((json) => {
-                            // successful backend request returns a orordered items array, reflect it in page:
-                            this.shoppingItems = json.items ? json.items : []
+                    syncOrder: function(event) {
+                        // after resorting, we calculate order numbers based on new position
+                        // and sync those to the backend
+                        var reorder = {}
+                        var count = 0
+                        var max = this.shoppingItems.length
+                        this.shoppingItems.forEach(function(x, idx) {
+                            count ++
+                            reorder[x.id] = count
+                            if (count === max) {
+                                console.log("fetching: " + JSON.stringify(reorder))
+                                // last element in the loop, send reorder array to backend:
+                                options = httpOptions("POST", reorder)
+                                console.log("options: " + JSON.stringify(options))
+                                fetch('/items/reorder', options)
+                                .then((res)  => res.json())
+                                .then((json) => {
+                                    // successful backend request returns a orordered items array, reflect it in page:
+                                    this.shoppingItems = json.items ? json.items : []
+                                    console.log("done fetching ")
+                                })
+                                .catch((err) => console.error(err))
+                            } 
                         })
-                        .catch((err) => console.error(err))
-
                     },
                     getItemId: function(id) {
-                        // the drop zone item has a special item id of -1, needs a special html id:
-                        if (id == -1) {
-                            return "dropzone"
-                        }
                         // all others get an html id derived from their item position:
                         return "item_" + this.shoppingItems.findIndex(x => x.id == id)
                     },
-                    reorder: function() {
-                        var sty_elem, s, i$, to$, i, e, sourceIndex, rule;
-                        sty_elem = document.createElement('style');
-                        document.head.appendChild(sty_elem)
-                      
-                        sty_elem.appendChild(document.createTextNode(''))
-                        s = sty_elem.sheet
-                      
-                        for (i= 0; i<= this.shoppingItems.length; i++) {
-                          e = i
-                          if (this.dragElement != null) {
-                            sourceIndex = this.dragElement.$index
-                            if (sourceIndex < e) {
-                                --e
-                            }
-                            console.log("reorder: index "+ i+", e: " + e)
-                          }
-                          rule = '.q div:nth-child(' + (i+1) + ') {top:' + (e*50) + 'px }'
-                          s.insertRule(rule, s.cssRules.length)
-                        }
-                    },
-                    dragstart: function(event) {
-                        console.log("DRAGSTART")
-                        var st;
-                        this.dragElement = event.targetVM
-                        this._dragNode = event.target
 
-                        this.reorder()
-                        st = this._dragNode.style
-                        Vue.nextTick(() => {
-                          st.opacity = 0
-                          st.height = 0
-                        })
-                        console.log("before insert")
-                        //var elem = document.getElementById('listgroup')
-                        //elem.insertBefore(this.placeholder, event.target)
-                        //console.log("before insert" + elem)
-                        this.$el.querySelector('.list-group').insertBefore(this.placeholder, event.target)     
-
-                        //event.dataTransfer.setData("text", event.target.id);
-                    },
-                    dragend: function(event) {
-                        console.log("DRAGEND")
-                        console.log(event)
-                        this.$el.querySelector('.list-group').removeChild(this.placeholder)
-                        this._dragNode.style.opacity = 1
-                        this._dragNode.style.height = '50px'
-             
-                        this._dragNode = null
-                        this.dragElement = null
-                        
-                        this.reorder()
-                        event.preventDefault()
-                        // add dropzone to list:
-                        //this.addDropzone(event.target.id, true)
-                        
-                    },
-/*                    dragleave: function(event) {
-                        event.preventDefault()
-                        /*var element = document.getElementById("dropzone");
-                        if(element) {
-                            element.parentNode.removeChild(element);
-                        }* /
-                        console.log("DRAGLEAVE")
-                        console.log(event)
-
-                    },*/
-                    dragover: function(event) {
-                        event.preventDefault()
-                        //event.dataTransfer.dropEffect = 'move'
-                        console.log("DRAGOVER")
-                        console.log(event)
-                        return true
-                    },
-                    drop: function(event) {
-                        event.preventDefault()
-                        console.log("DROP")
-                        console.log(event)
-
-                        insertIndex = this.insertIndex
-                        sourceIndex = this.dragElement.$index
-                        if(sourceIndex == insertIndex) {
-                            return
-                        }
-             
-                        removed = this.shoppingItems.splice(sourceIndex, 1)
-                        this.shoppingItems.splice(insertIndex, 0, removed[0])
-                        
-                        this.dragend(ev)
-                    },
-                    dragenter: function(event) {
-                        console.log("DRAGENTER")
-                        var sourceIndex, insertIndex, posElem;
-                        console.log(event)
-                        //this.haveDropzone = false
-
-                        sourceIndex = this.dragElement.$index
-                        insertIndex = ev.targetVM.$index
-                        this.insertIndex = insertIndex
-             
-                        // FIXME
-                        if (sourceIndex < insertIndex) {
-                            posElem = event.target
-                        } 
-                        else {
-                            pos.Elem = event.target.previousSibling
-                        }
-                        
-                        document.getElementById('listgroup').insertBefore(this.placeholder, posElem.nextSibling)
-                        event.preventDefault()
-                        return true
-                    },
-/*                    addDropzone: function(htmlId, afterElement) {
-                        this.haveDropzone = true
-                        position = 'beforestart'
-                        if (afterElement) {
-                            position = 'afterend'
-                        }
-                        //var that = this
-                        // get item id from htmlid:
-                        //var id = htmlId.split('_')[1]
-                        //var index = this.shoppingItems.findIndex(x => x.id == id)
-                        console.log("add dropzone to position " + htmlId)
-                        //this.shoppingItems.splice(index, 0, {id: -1, title: "DROPZONE"})
-                        /*var element = document.getElementById(htmlId)
-                        element.insertAdjacentHTML(position, '<li id="dropzone" class="list-group-item">DROPZONE</li>');
-                        //  ondrop="drop" ondragover="dropzone"
-                        element.addEventListener('dragover', function (ev) {
-                            console.log("DRAGOVER INSIDE")
-                            ev.preventDefault()
-                        })
-                        element.addEventListener('drop', function (ev) {
-                            console.log("DROP INSIDE")
-                        })
-                        * /
-                    },
-                    removeDropzone: function() {
-                        /*var element = document.getElementById("dropzone")
-                        if(element) {
-                            element.parentNode.removeChild(element);
-                        }
-                        * /
-                        var index = this.shoppingItems.findIndex(x => x.id == -1)
-                        this.shoppingItems.splice(index, 1)
-                    } */
                 },
                 // this is the end of the methods definition
                 // in this block we define dynamic ("computed") properties
                 computed: {
-                    /* DEPRECATED
-                    sortedList: function() {
-                      function compare(a, b) {
-                          return a.orderno - b.orderno || a.id - b.id
-                      }                  
-                      return this.shoppingItems.sort(compare);
-                    }
-                    */
-                  }
+                }
             })
         </script>
     </body>
