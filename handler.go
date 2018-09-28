@@ -211,24 +211,55 @@ func deleteManyItems(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
 func eventsStream(notifier *Notifier) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		ctx.Logger().Infof("eventsStream called")
-		notifier.AddReceiver()
+		receiverID, err := notifier.NewReceiver()
+		if err != nil {
+			ctx.Logger().Errorf("eventsStream: %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
+
+		}
+
+		// close notifier to clean up notifier channel if connection closes:
+
+		closeNotify := ctx.Response().CloseNotify()
+		go func() {
+			<-closeNotify
+			// connection close, do cleanup
+			ctx.Logger().Infof("eventsStream: close notify triggered")
+			notifier.RemoveReceiver(receiverID)
+		}()
+
 		ctx.Response().Header().Set(echo.HeaderContentType, "text/event-stream")
 		ctx.Response().WriteHeader(http.StatusOK)
 		ctx.Response().Flush()
 		for {
 			// listen on channel:
-			cmd := notifier.Wait()
+			cmd := notifier.Listen(receiverID)
+			ctx.Logger().Infof("eventsStream: received message %s", cmd)
 
 			// write message to client
-			if _, err := ctx.Response().Write([]byte(fmt.Sprintf("{\"cmd\": \"%s\"}\n\n", cmd))); err != nil {
-				notifier.RemoveReceiver()
+			res, err := ctx.Response().Write([]byte(fmt.Sprintf("{\"cmd\": \"%s\"}\n\n", cmd)))
+			if err != nil {
+				notifier.RemoveReceiver(receiverID)
 				msg := fmt.Sprintf("Error writing to stream: %v", err)
-				ctx.Logger().Infof("eventsStream: " + msg)
+				ctx.Logger().Infof("eventsStream: %s", msg)
 				return echo.NewHTTPError(http.StatusInternalServerError, msg)
 			}
+			ctx.Logger().Infof("eventsStream: sent message %v", res)
 			ctx.Response().Flush()
 		}
 		// TODO: break condition in endless loop?
 		//return nil
+	}
+}
+
+// DELETE /:id/ deletes one item
+func doNothing(notifier *Notifier) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+
+		// looks fine, notify all the listening clients:
+		notifier.Send("UPDATE")
+
+		// and inform the client
+		return ctx.NoContent(http.StatusNoContent)
 	}
 }
