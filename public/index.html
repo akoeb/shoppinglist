@@ -109,10 +109,13 @@
                     // setup event stream for listening on updates
                     setupStream: function() {
                         let es = new EventSource('/events');
-                        es.addEventListener('message', event => {
+                        let that = this
+                        es.onmessage = function(event) {
                             let data = JSON.parse(event.data);
-                            console.log("MESSAGE: " + data)
-                        }, false);
+                            if (data.cmd == 'UPDATE') {
+                                that.loadAll()
+                            }
+                        }
             
                         es.addEventListener('error', event => {
                             if (event.readyState == EventSource.CLOSED) {
@@ -141,8 +144,8 @@
                         }
                         // add item status and ordering
                         this.newItem.status = "OPEN"
-                        // TODO: orderno must be the last of the shopping list plus 1
-                        this.newItem.orderno = 0
+                        // orderno must be the last of the shopping list plus 1
+                        this.newItem.orderno = this.shoppingItems.length
 
                         // now send it to backend
                         fetch('/items', httpOptions("POST", this.newItem))
@@ -200,16 +203,13 @@
                             count ++
                             reorder[x.id] = count
                             if (count === max) {
-                                console.log("fetching: " + JSON.stringify(reorder))
                                 // last element in the loop, send reorder array to backend:
                                 options = httpOptions("POST", reorder)
-                                console.log("options: " + JSON.stringify(options))
                                 fetch('/items/reorder', options)
                                 .then((res)  => res.json())
                                 .then((json) => {
                                     // successful backend request returns a orordered items array, reflect it in page:
                                     this.shoppingItems = json.items ? json.items : []
-                                    console.log("done fetching ")
                                 })
                                 .catch((err) => console.error(err))
                             } 

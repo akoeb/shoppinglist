@@ -108,7 +108,6 @@ func main() {
 	// events
 	events := e.Group("/events")
 	events.GET("", eventsStream(notifier))
-	events.GET("/test", doNothing(notifier))
 
 	// Start server TODO: test?
 	// e.Logger.Fatal(e.StartAutoTLS(fmt.Sprintf(":%d", *options.Port)))

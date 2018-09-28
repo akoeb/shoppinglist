@@ -41,7 +41,6 @@ func NewNotifier() *Notifier {
 func (n *Notifier) Dispatcher() {
 	for {
 		msg := <-n.incoming
-		fmt.Printf("Received from incoming: %s\n", msg)
 		for chanID := range n.listeners {
 			go n.sendToChannel(chanID, msg)
 		}
@@ -62,7 +61,6 @@ func (n *Notifier) Send(msg string) error {
 	if _, ok := n.Commands[upper]; !ok {
 		return fmt.Errorf("Not a Valid Command: %s", msg)
 	}
-	fmt.Printf("Send to incoming: %s\n", upper)
 	n.incoming <- upper
 
 	return nil
@@ -73,7 +71,6 @@ func (n *Notifier) Listen(chanID int) string {
 	cmd := ""
 	if channel, ok := n.listeners[chanID]; ok {
 		cmd = <-channel
-		fmt.Printf("Received from channel %d: %s\n", chanID, cmd)
 	}
 	return cmd
 }
@@ -91,7 +88,6 @@ func (n *Notifier) NewReceiver() (int, error) {
 	chanID, n.pool = n.pool[0], n.pool[1:]
 
 	n.listeners[chanID] = channel
-	fmt.Printf("Add Receiver: %d\n%v\n", chanID, n.pool)
 	return chanID, nil
 }
 
@@ -99,5 +95,4 @@ func (n *Notifier) NewReceiver() (int, error) {
 func (n *Notifier) RemoveReceiver(chanID int) {
 	delete(n.listeners, chanID)
 	n.pool = append(n.pool, chanID)
-	fmt.Printf("Remove Receiver: %d\n", chanID)
 }

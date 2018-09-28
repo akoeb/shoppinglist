@@ -213,7 +213,7 @@ func eventsStream(notifier *Notifier) echo.HandlerFunc {
 		ctx.Logger().Infof("eventsStream called")
 		receiverID, err := notifier.NewReceiver()
 		if err != nil {
-			ctx.Logger().Errorf("eventsStream: %v", err)
+			ctx.Logger().Errorf("eventsStream Error creating receiver: %v", err)
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 
 		}
@@ -234,32 +234,16 @@ func eventsStream(notifier *Notifier) echo.HandlerFunc {
 		for {
 			// listen on channel:
 			cmd := notifier.Listen(receiverID)
-			ctx.Logger().Infof("eventsStream: received message %s", cmd)
 
 			// write message to client
-			res, err := ctx.Response().Write([]byte(fmt.Sprintf("{\"cmd\": \"%s\"}\n\n", cmd)))
+			_, err := ctx.Response().Write([]byte(fmt.Sprintf("data: {\"cmd\": \"%s\"}\n\n", cmd)))
 			if err != nil {
 				notifier.RemoveReceiver(receiverID)
 				msg := fmt.Sprintf("Error writing to stream: %v", err)
-				ctx.Logger().Infof("eventsStream: %s", msg)
+				ctx.Logger().Infof("eventsStream: Error %v", msg)
 				return echo.NewHTTPError(http.StatusInternalServerError, msg)
 			}
-			ctx.Logger().Infof("eventsStream: sent message %v", res)
 			ctx.Response().Flush()
 		}
-		// TODO: break condition in endless loop?
-		//return nil
-	}
-}
-
-// DELETE /:id/ deletes one item
-func doNothing(notifier *Notifier) echo.HandlerFunc {
-	return func(ctx echo.Context) error {
-
-		// looks fine, notify all the listening clients:
-		notifier.Send("UPDATE")
-
-		// and inform the client
-		return ctx.NoContent(http.StatusNoContent)
 	}
 }
