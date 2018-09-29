@@ -16,6 +16,7 @@ type Options struct {
 	DatabaseFile         *string
 	HTTPBaseAuthUser     *string
 	HTTPBaseAuthPassword *string
+	Domain               *string
 	Port                 *int
 	LogLevel             log.Lvl
 }
@@ -26,6 +27,7 @@ func parseFlags() *Options {
 
 	// options:
 	options.Port = flag.Int("port", 8080, "The Port that the application uses for listening")
+	options.Domain = flag.String("domain", "localhost", "The Domain for CORS and TLS")
 	options.DatabaseFile = flag.String("db", "storage.db", "The file to store the sqlite3 database")
 	options.HTTPBaseAuthUser = flag.String("user", "", "The user name for HTTP Base authentication")
 	options.HTTPBaseAuthPassword = flag.String("password", "", "The password for HTTP Base authentication")
@@ -48,7 +50,7 @@ func parseFlags() *Options {
 	if *options.HTTPBaseAuthPassword != "" && *options.HTTPBaseAuthUser == "" {
 		log.Fatal("Can not use HTTP Base Authentication with only password, needs also user")
 	}
-
+	log.Infof("options: %v/%v", *options.HTTPBaseAuthUser, *options.HTTPBaseAuthPassword)
 	return options
 }
 
@@ -74,10 +76,29 @@ func main() {
 	e.Use(middleware.Recover())
 
 	// CORS header
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://127.0.0.1:8080"},
-		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE, echo.OPTIONS},
-	}))
+	var corsConfig middleware.CORSConfig
+	if *options.Domain == "localhost" {
+		corsConfig = middleware.CORSConfig{
+			AllowOrigins: []string{fmt.Sprintf("http://127.0.0.1:%d", *options.Port)},
+			AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE, echo.OPTIONS},
+		}
+	} else {
+		corsConfig = middleware.CORSConfig{
+			AllowOrigins: []string{fmt.Sprintf("https://%s:%d", *options.Domain, *options.Port)},
+			AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE, echo.OPTIONS},
+		}
+	}
+	e.Use(middleware.CORSWithConfig(corsConfig))
+
+	// basic auth
+	if *options.HTTPBaseAuthUser != "" {
+		e.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
+			if username == *options.HTTPBaseAuthUser && password == *options.HTTPBaseAuthPassword {
+				return true, nil
+			}
+			return false, nil
+		}))
+	}
 
 	// routes for static files
 	e.Static("/", "public")
@@ -109,7 +130,11 @@ func main() {
 	events := e.Group("/events")
 	events.GET("", eventsStream(notifier))
 
-	// Start server TODO: test?
-	// e.Logger.Fatal(e.StartAutoTLS(fmt.Sprintf(":%d", *options.Port)))
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", *options.Port)))
+	// Start server
+	if *options.Domain == "localhost" {
+		e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", *options.Port)))
+	} else {
+		e.Logger.Fatal(e.StartAutoTLS(fmt.Sprintf(":%d", *options.Port)))
+	}
+
 }
