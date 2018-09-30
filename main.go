@@ -18,6 +18,7 @@ type Options struct {
 	HTTPBaseAuthPassword *string
 	Domain               *string
 	Port                 *int
+	BindIP               *string
 	LogLevel             log.Lvl
 }
 
@@ -31,6 +32,7 @@ func parseFlags() *Options {
 	options.DatabaseFile = flag.String("db", "storage.db", "The file to store the sqlite3 database")
 	options.HTTPBaseAuthUser = flag.String("user", "", "The user name for HTTP Base authentication")
 	options.HTTPBaseAuthPassword = flag.String("password", "", "The password for HTTP Base authentication")
+	options.BindIP = flag.String("bind", "", "The IP address to bind to, defaults to all local")
 	debugFlag := flag.Bool("debug", false, "Activate debug logging")
 
 	// parse command line into options
@@ -131,10 +133,6 @@ func main() {
 	events.GET("", eventsStream(notifier))
 
 	// Start server
-	if *options.Domain == "localhost" {
-		e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", *options.Port)))
-	} else {
-		e.Logger.Fatal(e.StartAutoTLS(fmt.Sprintf(":%d", *options.Port)))
-	}
+	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%d", *options.BindIP, *options.Port)))
 
 }
