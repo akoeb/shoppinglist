@@ -17,3 +17,8 @@ shoppinglist
 
 # vscode #
 .vscode/
+
+bower_components
+node_modules
+npm-debug.log
+public/css/app.css

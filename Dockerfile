@@ -2,18 +2,22 @@
 FROM golang:alpine as builder
 
 # Install SSL ca certificates
-RUN apk update && apk add git && apk add ca-certificates && apk add build-base
+RUN apk update && apk add git && apk add ca-certificates && apk add build-base && apk add --update nodejs nodejs-npm
 
 # Create appuser
 RUN adduser -D -g '' appuser
 COPY . $GOPATH/src/github.com/akoeb/shoppinglist/
 WORKDIR $GOPATH/src/github.com/akoeb/shoppinglist/
 
-# get dependancies
-RUN ["go", "get", "-d", "-v"]
+# get dependancies for go
+RUN go get -d -v 
 
 # build the binary
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -tags netgo -ldflags='-w -extldflags "-static"' -o /go/bin/shoppinglist
+
+# get dependencies and install frontend
+RUN  npm install && node_modules/.bin/foundation build
+
 
 # STEP 2 build a small image
 # start from alpine to have a shell in the image, for the entry point
