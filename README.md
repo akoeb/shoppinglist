@@ -4,60 +4,40 @@
 
 This is a simple web application to maintain a shopping list. You can view and modify this list from your computer at home or from your cell phone in the store. Or let your partner add things to the list while you are running to get the stuff ;-)
 
-This is work in Progress and **NOT USABLE** yet!
-
-You have been warned!
-
 ## Backend ##
 
-The backend is written in golang with the echo framework
+The backend is written in golang with the echo framework.
 
-### Entities ###
+Compile the backend with:
 
-* item (Name, Status (OPEN, CHECKED), created, orderno)
-
-### API ###
-
-* show all items, possibility to filter by status, order alphabetically or by date or orderno  (default)
-* add item
-* change item
-* delete item
-* delete multiple items (by status)
+* `go get` - to get all go dependencies
+* `go build`- to build the application
 
 ## Frontend ##
 
-The frontend is not coded yet
+Frontend is a vue.js application that uses the foundation css framework. Vue and foundation dependencies for the app itself are already in the /public folder, you only need to run `foundation build` to get the file public/css/app.css compiled out of the scss dir.
 
-* shows the list of items
-* every item can be clicked which toggles "strike through" of the item
-* striked through items are of Status "CHECKED", the others have status "OPEN"
-* of course items can be added, modified or deleted
-* all striked through items can be deleted
-* The list shows all items or only the ones in status OPEN
-* every item change synchronizes to the backend asynchronously
+## docker image ##
 
-## TODO ##
+The actual complete and runnable application is also packaged as docker image, run it with 
 
-* Continue this Drag&Drop sh...
-  => how to determine position? before or after element? dragover direction?
-  => add dropzone to the correct position in shopping items
-  => dropzone with event handlers drop and ondragover
-  => call reOrderitems when item is dropped
+```bash
+docker run -d --name CONTAINERNAME -v PATH_TO_SQLITE.db:/data/shoppinglist.db akoeb/shoppinglist
+```
 
-* BE: Tests
-* BE: autotls with localhost and testing domains?
+## development ##
 
-* FE: replace bootstrap so we do not need jquery
-* FE: mobile friendly
-* FE: refactor reorderItems method
+If you want to develop on this application, you will need to have golang installed, with correct GOPATH, for the backend. To work on the frontend, you need to have foundation installed.
 
-* BOTH: Implement server push events when some other device changes the list
-* BOTH: Implement http base auth
+* Start watching for changes in your css files with `foundation watch`
+* build the backend with `go build`
+* run the backend with `./shoppinglist`
+* open a browser, pointing to http://127.0.0.1:8080
 
-* test delete many with empty status
+## MAINTAINERS ##
 
-## CHECK ##
-https://codepen.io/safx/pen/dasnt
+* https://github.com/coatla
+* https://github.com/akoeb
 
 ## License ##
 
