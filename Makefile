@@ -15,6 +15,6 @@ bash:
 	sudo docker run -d --name $(NAME) -ti $(IMAGE):$(VERSION) /bin/bash
 
 rm:
-	-sudo ocker stop $(NAME)
+	-sudo docker stop $(NAME)
 	sudo docker rm $(NAME)
 	
