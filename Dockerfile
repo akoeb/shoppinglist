@@ -2,7 +2,7 @@
 FROM golang:alpine as builder
 
 # Install SSL ca certificates
-RUN apk update && apk add git && apk add ca-certificates && apk add build-base && apk add --update nodejs nodejs-npm
+RUN apk update && apk add git && apk add ca-certificates && apk add build-base && apk add --update nodejs nodejs-npm && apk add python2
 
 # Create appuser
 RUN adduser -D -g '' appuser
