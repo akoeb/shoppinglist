@@ -9,7 +9,7 @@ HTTP_PW := machen
 all: run
 
 run:
-	docker run -d --name $(NAME) -v $(PWD)/storage.db:/data/shoppinglist.db -e HTTP_USER="$(HTTP_USER)" -e HTTP_PASSWORD="$(HTTP_PW)" -p 8080 --network wordpress $(IMAGE):$(VERSION)
+	docker run -d --name $(NAME) -v $(PWD)/shoppinglist.db:/data/shoppinglist.db -e HTTP_USER="$(HTTP_USER)" -e HTTP_PASSWORD="$(HTTP_PW)" -p 8080 --network wordpress $(IMAGE):$(VERSION)
 
 bash:
 	docker run -d --name $(NAME) -ti $(IMAGE):$(VERSION) /bin/bash
