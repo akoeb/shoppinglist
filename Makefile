@@ -1,8 +1,8 @@
 IMAGE := akoeb/shoppinglist
 NAME := shoppinglist
 VERSION := latest
-HTTP_USER := liste
-HTTP_PW := machen
+HTTP_USER := my_list_user
+HTTP_PW := supersecretpassword
 
 .PHONY: all run bash rm
 
