@@ -13,49 +13,56 @@ $borders:15px;
     @return map-get($colors, $color-name)
 }
 
-body, html {
-  height:100%;
-}
 
 body{
   font-family: 'Raleway', sans-serif;
-  grid-template-columns: 100px auto 100px;
-  margin:0;
 
-      #bg{
-    background-color: map-get($colors,primary);
-    align-items: center;
-    width: 100%;
-    height: 100%;
-    position:absolute;
-  }
+    #bg{
+        background-color: map-get($colors,primary);
+      }
 
-  header{
-    text-align: center;
-    color:map-get($colors,success);
-    padding: $padding;
-    display: block;
-    text-transform: uppercase;
-    line-height: 120px;
-    height: 110px;
-    font-family: 'Raleway';
-  }
+    header{
+      text-align: center;
+      color:map-get($colors,success);
+      display: block;
+      text-transform: uppercase;
+      line-height: 120px;
+      height:90px;
+      font-family: 'Raleway',sans-serif;
+      font-weight: bold;
+      font-size: 18pt;
+    }
 }
 
-.list-group{
+#databinding{
   font-family: 'Raleway', sans-serif;
-  width: 80%;
-  align-items:center;
+  color:map-get($colors,success);
+  flex-wrap:wrap;
+  max-width:500px;
+  padding: $padding;
 
-  .list-group-item{
-    margin:3em 2em 2em 2em;
-  }
 
-  .button{
-    border-radius:3px;
-    padding-left: 2em;
-    padding-right: 2em;
-    margin-left:.5em;
-  }
+      .list-group-item{
+        padding: $padding;
+      }
 
+      .fas{
+        color:map-get($colors,warning);
+      }
+
+      .button{
+        color:map-get($colors,primary);
+        border-radius:3px;
+        padding-left: 1em;
+        padding-right: 1em;
+        margin-left:.5em;
+        font-weight: bold;
+      }
 }
+
+    li{
+      color:map-get($colors,success);
+      font-family: 'Raleway', sans-serif;
+      font-size: 20pt;
+      font-weight: bold;
+    }
