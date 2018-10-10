@@ -6,7 +6,7 @@ HTTP_PW := supersecretpassword
 
 .PHONY: all run bash rm
 
-all: run
+all: runlocal
 
 compile:
 	go build .
