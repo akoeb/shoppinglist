@@ -6,6 +6,7 @@ import (
 )
 
 // AllowedCommands is an array with all possible commands
+// TODO: notifier must show either which category changed, or whether the list of categories changed
 var AllowedCommands = [1]string{"UPDATE"}
 
 // Notifier is used to send messages between the streaming handler and the regular handlers
@@ -56,7 +57,7 @@ func (n *Notifier) sendToChannel(chanID int, msg string) {
 }
 
 // Send a message to all listening receivers
-func (n *Notifier) Send(msg string) error {
+func (n *Notifier) Send(msg string, categoryID int) error {
 	upper := strings.ToUpper(msg)
 	if _, ok := n.Commands[upper]; !ok {
 		return fmt.Errorf("Not a Valid Command: %s", msg)

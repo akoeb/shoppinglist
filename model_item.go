@@ -20,10 +20,11 @@ func isAllowedStatusCode(code string) bool {
 
 // Item is our shopping list item
 type Item struct {
-	ID      int    `json:"id"`
-	Title   string `json:"title"`
-	Status  string `json:"status"`
-	Orderno int    `json:"orderno"`
+	ID         int    `json:"id"`
+	Title      string `json:"title"`
+	Status     string `json:"status"`
+	Orderno    int    `json:"orderno"`
+	LocationID int    `json:"location"`
 }
 
 // Valid tells you whether an item is valid
@@ -57,11 +58,20 @@ func (i *ItemCollection) Valid() bool {
 	return true
 }
 
-// GetAllItems from database
-func GetAllItems(db *sql.DB) (ItemCollection, error) {
+// GetItemsInCategory from database
+func GetItemsInCategory(db *sql.DB, categoryID int, locationID int) (ItemCollection, error) {
 	result := ItemCollection{}
-	sql := "SELECT id, title, status, orderno FROM items ORDER BY orderno, id"
-	rows, err := db.Query(sql)
+	var err error
+	var rows *sql.Rows
+
+	if locationID > 0 {
+		sql := "SELECT id, title, status, orderno, location_id FROM items WHERE category_id = ? AND location_id = ? ORDER BY orderno, id"
+		rows, err = db.Query(sql, categoryID, locationID)
+	} else {
+		sql := "SELECT id, title, status, orderno, location_id FROM items WHERE category_id = ? ORDER BY orderno, id"
+		rows, err = db.Query(sql, categoryID)
+	}
+
 	// Exit if the SQL doesn't work for some reason
 	if err != nil {
 		return result, err
@@ -71,7 +81,7 @@ func GetAllItems(db *sql.DB) (ItemCollection, error) {
 
 	for rows.Next() {
 		item := Item{}
-		err = rows.Scan(&item.ID, &item.Title, &item.Status, &item.Orderno)
+		err = rows.Scan(&item.ID, &item.Title, &item.Status, &item.Orderno, &item.LocationID)
 		// Exit if we get an error
 		if err != nil {
 			return result, err
@@ -81,11 +91,11 @@ func GetAllItems(db *sql.DB) (ItemCollection, error) {
 	return result, nil
 }
 
-// GetItemByID loads one item from database, identified by its id
-func GetItemByID(db *sql.DB, id int) (Item, error) {
+// GetItemByIDAndCategory loads one item from database, identified by its id
+func GetItemByIDAndCategory(db *sql.DB, categoryID int, itemID int) (Item, error) {
 	result := Item{}
-	sql := "SELECT id, title, status, orderno FROM items WHERE id = ?"
-	rows, err := db.Query(sql, id)
+	sql := "SELECT id, title, status, orderno, location_id FROM items WHERE id = ? and category_id = ?"
+	rows, err := db.Query(sql, itemID, categoryID)
 	// Exit if the SQL doesn't work for some reason
 	if err != nil {
 		return result, err
@@ -104,19 +114,38 @@ func GetItemByID(db *sql.DB, id int) (Item, error) {
 }
 
 // UpsertItem writes an item to database.
-// Whether to INSRT or UPDATE is determined by the existence if its ID field
+// Whether to INSERT or UPDATE is determined by the existence if its ID field
 // modifies the item, adds the ID on creates.
-func UpsertItem(db *sql.DB, item *Item) error {
+func UpsertItem(db *sql.DB, categoryID int, item *Item) error {
+	// do category and/or location exist?
+	category, err := GetCategoryByID(db, categoryID)
+	if err == nil {
+		return fmt.Errorf("Can not get category by id %v: %v", categoryID, err)
+	}
+	if category.ID == 0 {
+		return fmt.Errorf("Can not get category by id %v: Does not Exist", categoryID)
+	}
 
+	if item.LocationID > 0 {
+		location, err := GetLocationByID(db, item.LocationID)
+		if err == nil {
+			return fmt.Errorf("Can not get location by id %v: %v", item.LocationID, err)
+		}
+		if location.ID == 0 {
+			return fmt.Errorf("Can not get location by id %v: Does not Exist", item.LocationID)
+		}
+	}
+
+	// insert or update
 	doInsert := true
 	if item.ID > 0 {
 		doInsert = false
 	}
 	var query string
 	if doInsert {
-		query = "INSERT INTO items(title, status, orderno ) VALUES(?, ?, ?)"
+		query = "INSERT INTO items(title, status, orderno, location_id, category_id ) VALUES(?, ?, ?, ?, ?)"
 	} else {
-		query = `UPDATE items set title = ?, status = ?, orderno = ? WHERE id = ?`
+		query = `UPDATE items set title = ?, status = ?, orderno = ?, location_id = ?, category_id = ? WHERE id = ?`
 	}
 
 	// Create a prepared SQL statement
@@ -131,9 +160,9 @@ func UpsertItem(db *sql.DB, item *Item) error {
 	// Execute
 	var result sql.Result
 	if doInsert {
-		result, err = stmt.Exec(item.Title, item.Status, item.Orderno)
+		result, err = stmt.Exec(item.Title, item.Status, item.Orderno, item.LocationID, categoryID)
 	} else {
-		result, err = stmt.Exec(item.Title, item.Status, item.Orderno, item.ID)
+		result, err = stmt.Exec(item.Title, item.Status, item.Orderno, item.LocationID, categoryID, item.ID)
 	}
 	// Exit if we get an error
 	if err != nil {
@@ -152,9 +181,9 @@ func UpsertItem(db *sql.DB, item *Item) error {
 }
 
 // DeleteItemByID deletes one item from the database, identified by its id
-func DeleteItemByID(db *sql.DB, id int) (int, error) {
+func DeleteItemByID(db *sql.DB, categoryID int, itemID int) (int, error) {
 
-	sql := "DELETE FROM items WHERE id = ?"
+	sql := "DELETE FROM items WHERE id = ? and category_id = ?"
 
 	// Create a prepared SQL statement
 	stmt, err := db.Prepare(sql)
@@ -166,7 +195,7 @@ func DeleteItemByID(db *sql.DB, id int) (int, error) {
 	defer stmt.Close()
 
 	// Execute
-	result, err := stmt.Exec(id)
+	result, err := stmt.Exec(itemID, categoryID)
 	// Exit if we get an error
 	if err != nil {
 		return 0, err
@@ -178,75 +207,4 @@ func DeleteItemByID(db *sql.DB, id int) (int, error) {
 	}
 
 	return int(numDeleted), nil
-}
-func deleteManyItemsByStatus(db *sql.DB, status string) (int, error) {
-
-	var sql string
-	if status == "" {
-		sql = "DELETE FROM items"
-	} else {
-		sql = "DELETE FROM items WHERE status = ?"
-	}
-	// Create a prepared SQL statement
-	stmt, err := db.Prepare(sql)
-	// Exit if we get an error
-	if err != nil {
-		return 0, err
-	}
-	// Make sure to cleanup after the program exits
-	defer stmt.Close()
-
-	// Execute
-	result, err := stmt.Exec(status)
-	// Exit if we get an error
-	if err != nil {
-		return 0, err
-	}
-
-	numDeleted, err := result.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-
-	return int(numDeleted), nil
-}
-
-func reOrderItems(db *sql.DB, items map[int]int) error {
-
-	sql := "UPDATE items set orderno = ? where id = ?"
-
-	// Create a prepared SQL statement
-	tx, err := db.Begin()
-	// Exit if we get an error
-	if err != nil {
-		return err
-	}
-
-	// prepare statement in this transaction
-	stmt, err := tx.Prepare(sql)
-
-	// Exit if we get an error
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Make sure to cleanup after the program exits
-	defer stmt.Close()
-
-	// Execute
-	for k, v := range items {
-		_, err := stmt.Exec(v, k)
-
-		// Exit if we get an error
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-	// all good, commit the transaction
-	tx.Commit()
-
-	// and bye
-	return nil
 }

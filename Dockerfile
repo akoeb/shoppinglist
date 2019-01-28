@@ -6,8 +6,14 @@ RUN apk update && apk add git && apk add ca-certificates && apk add build-base &
 
 # Create appuser
 RUN adduser -D -g '' appuser
-COPY . $GOPATH/src/github.com/akoeb/shoppinglist/
 WORKDIR $GOPATH/src/github.com/akoeb/shoppinglist/
+
+
+# migration tool:
+RUN go get -tags 'postgres sqlite3 mysql' -u github.com/golang-migrate/migrate/cmd/migrate
+
+# our code
+COPY . $GOPATH/src/github.com/akoeb/shoppinglist/
 
 # get dependancies for go
 RUN go get -d -v 
@@ -24,14 +30,16 @@ RUN  npm install && node_modules/.bin/foundation build
 FROM alpine
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /go/bin/migrate /app/bin/migrate
 
 # Copy our static executable
-COPY --from=builder /go/bin/shoppinglist /shoppinglist
-COPY --from=builder /go/src/github.com/akoeb/shoppinglist/public /public
+COPY --from=builder /go/bin/shoppinglist /app/bin/shoppinglist
+COPY --from=builder /go/src/github.com/akoeb/shoppinglist/public /app/public
+COPY --from=builder /go/src/github.com/akoeb/shoppinglist/db /app/db
 ENV DATABASE_FILE="/data/shoppinglist.db"
 ENV DOMAIN="localhost"
 ENV HTTP_USER=""
 ENV HTTP_PASSWORD=""
 USER appuser
 VOLUME /data
-CMD /shoppinglist -db /data/shoppinglist.db -domain $DOMAIN -user $HTTP_USER -password $HTTP_PASSWORD
+CMD /app/bin/shoppinglist -db /data/shoppinglist.db -domain $DOMAIN -user $HTTP_USER -password $HTTP_PASSWORD

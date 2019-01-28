@@ -66,7 +66,6 @@ func main() {
 
 	// Database
 	db := initDB(*options.DatabaseFile)
-	migrate(db)
 
 	// channel to send back and forth update notifications
 	notifier := NewNotifier()
@@ -103,10 +102,10 @@ func main() {
 	}
 
 	// routes for static files
-	e.Static("/", "public")
+	e.Static("/", "/app/public/")
 
 	// apis have their own middlewares: group them
-	apis := e.Group("/items")
+	apis := e.Group("/api")
 
 	// only allow application/json content type:
 	apis.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -119,14 +118,29 @@ func main() {
 		}
 	})
 
+	// TODO: notifier only for all categories or inside a category
+
 	// Routes
-	apis.GET("", showAllItems(db))
-	apis.GET("/:id", showOneItem(db))
-	apis.POST("", createItem(db, notifier))
-	apis.POST("/reorder", reorderItems(db, notifier))
-	apis.PUT("/:id", updateItem(db, notifier))
-	apis.DELETE("/:id", deleteOneItem(db, notifier))
-	apis.DELETE("", deleteManyItems(db, notifier))
+	// categories
+	apis.GET("/categories", showAllCategories(db))         // list all categories
+	apis.GET("/categories/:catid", showOneCategory(db))    // show one category
+	apis.POST("/categories", createCategory(db, notifier)) // create a category
+	apis.PUT("/categories/:catid", updateCategory(db, notifier))
+	apis.DELETE("/categories/:catid", deleteOneCategory(db, notifier))
+
+	// locations
+	apis.GET("/locations", showAllLocations(db))          // list all locations, can be filtered by category id
+	apis.POST("/locations", createLocation(db, notifier)) // create a location
+	apis.PUT("/locations/:locid", updateLocation(db, notifier))
+	apis.DELETE("/locations/:locid", deleteOneLocation(db, notifier))
+	// TODO: apis.POST("/locations/:locid/reorder", reorderItemsByLocation(db, notifier))
+
+	// items
+	apis.GET("/categories/:catid/items", showAllItemsInCategory(db)) // list all items in one category, can be filtered by location id
+	apis.POST("/categories/:catid/items", createItem(db, notifier))  // create an item
+	apis.GET("/categories/:catid/items/:itemid", showOneItemInCategory(db))
+	apis.PUT("/categories/:catid/items/:itemid", updateItem(db, notifier))
+	apis.DELETE("/categories/:catid/items/:itemid", deleteOneItem(db, notifier))
 
 	// events
 	events := e.Group("/events")

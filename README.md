@@ -34,6 +34,20 @@ If you want to develop on this application, you will need to have golang install
 * run the backend with `./shoppinglist`
 * open a browser, pointing to http://127.0.0.1:8080
 
+## TODO Frontend ##
+
+* header component with:
+  * active list name
+  * button to add more
+  * button to see all lists in a drop-down
+  * button to add location
+
+* location component that shows the active location
+
+* list component that shows the items in active list and active location (or all items if no active location)
+
+* footer component with create item box, creates item in active list and active location
+
 ## MAINTAINERS ##
 
 * https://github.com/coatla
