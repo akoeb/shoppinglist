@@ -1,0 +1,68 @@
+$colors: (
+  primary: #4B4EA3,
+  secondary:#D9FFD0,
+  success: #8AB32D,
+  warning: #C24623,
+  alert: #C2F05B,
+  );
+
+$padding: 15px;
+$borders:15px;
+
+@function color($color-name){
+    @return map-get($colors, $color-name)
+}
+
+
+body{
+  font-family: 'Raleway', sans-serif;
+
+    #bg{
+        background-color: map-get($colors,primary);
+      }
+
+    header{
+      text-align: center;
+      color:map-get($colors,success);
+      display: block;
+      text-transform: uppercase;
+      line-height: 120px;
+      height:90px;
+      font-family: 'Raleway',sans-serif;
+      font-weight: bold;
+      font-size: 18pt;
+    }
+}
+
+#databinding{
+  font-family: 'Raleway', sans-serif;
+  color:map-get($colors,success);
+  flex-wrap:wrap;
+  max-width:500px;
+  padding: $padding;
+
+
+      .list-group-item{
+        padding: $padding;
+      }
+
+      .fas{
+        color:map-get($colors,warning);
+      }
+
+      .button{
+        color:map-get($colors,primary);
+        border-radius:3px;
+        padding-left: 1em;
+        padding-right: 1em;
+        margin-left:.5em;
+        font-weight: bold;
+      }
+}
+
+    li{
+      color:map-get($colors,success);
+      font-family: 'Raleway', sans-serif;
+      font-size: 20pt;
+      font-weight: bold;
+    }

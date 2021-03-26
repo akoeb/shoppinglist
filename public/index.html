@@ -3,7 +3,7 @@
     <head>
         <meta http-equiv="content-type" content="text/html; charset=utf-8">
         <meta charset="utf-8">
-        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Shopping list</title>
         <link rel="stylesheet" href="css/app.css">
@@ -16,16 +16,22 @@
 
         <!-- Vue.js -->
         <!-- script src="https://cdn.jsdelivr.net/npm/vue-template-compiler"></script -->
-        <script src="js/vue.js"></script>
+        <!-- script src="js/vue.js"></script -->
 
         <!-- Sortable //cdn.jsdelivr.net/npm/sortablejs@1.7.0/Sortable.min.js -->
-        <script src="js/Sortable.min.js"></script>
+        <!-- script src="js/Sortable.min.js"></script -->
 
         <!-- vuedraggable //cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.15.0/vuedraggable.min.js -->
-        <script src="js/vuedraggable.min.js"></script>
+        <!-- script src="js/vuedraggable.min.js"></script -->
 
     </head>
     <body>
+    <noscript>
+      <strong>We're sorry but shoppinglist doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+    <!-- TODO remove all that:
         <style>
             .status-checked {
                 text-decoration: line-through;
@@ -61,7 +67,7 @@
                         <span class="input-group-btn">
                               <button class="button default alert" type="button" v-on:click="addItem">CREATE</button>
                         </span>
-                    </div><!-- /input-group -->
+                    </div>
                     </div>
             </div>
         </div>
@@ -233,5 +239,7 @@
                 }
             })
         </script>
+        END TODO
+        -->
     </body>
 </html>
