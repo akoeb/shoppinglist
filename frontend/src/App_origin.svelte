@@ -1,13 +1,23 @@
 <script>
-  import List from './lib/List.svelte'
+  import logo from './assets/svelte.png'
+  import Counter from './lib/Counter.svelte'
 </script>
 
 <main>
+  <img src={logo} alt="Svelte Logo" />
+  <h1>Hello world!</h1>
 
-  <h3>Shopping List<i class="fas fa-shopping-basket fa-2x ml-2"></i></h3>
+  <Counter />
 
-  <List />
+  <p>
+    Visit <a href="https://svelte.dev">svelte.dev</a> to learn how to build Svelte
+    apps.
+  </p>
 
+  <p>
+    Check out <a href="https://github.com/sveltejs/kit#readme">SvelteKit</a> for
+    the officially supported framework, also powered by Vite!
+  </p>
 </main>
 
 <style>

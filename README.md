@@ -15,8 +15,7 @@ Compile the backend with:
 
 ## Frontend ##
 
-Frontend is a vue.js application that uses the foundation css framework. Vue and foundation dependencies for the app itself are already in the /public folder, you only need to run `foundation build` to get the file public/css/app.css compiled out of the scss dir.
-
+TODO: documentation
 ## docker image ##
 
 The actual complete and runnable application is also packaged as docker image, run it with 

@@ -81,7 +81,12 @@ func main() {
 	var corsConfig middleware.CORSConfig
 	if *options.Domain == "localhost" {
 		corsConfig = middleware.CORSConfig{
-			AllowOrigins: []string{fmt.Sprintf("http://127.0.0.1:%d", *options.Port)},
+			AllowOrigins: []string{
+				fmt.Sprintf("http://localhost:8080"),
+				fmt.Sprintf("http://localhost:3000"),
+				fmt.Sprintf("http://127.0.0.1:8080"),
+				fmt.Sprintf("http://127.0.0.1:3000")},
+
 			AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE, echo.OPTIONS},
 		}
 	} else {

@@ -23,7 +23,7 @@ tasks:
     deps: [build-backend]
     dir: backend
     cmds:
-      - ./shoppinglist --db shoppinglist.db 
+      - ./shoppinglist --db shoppinglist.db --debug
 
   clean-backend:
     dir: backend
