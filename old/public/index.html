@@ -40,7 +40,7 @@
                         <span><i class="fas fa-shopping-basket fa-2x"></i></span>
                   </header>
                 <div class="grid-x grid-margin-x" id="databinding">
-                  <div class="cell small-4"></div>
+                  <!--div class="cell small-4"></div-->
                    <div class="cell auto">
                     <draggable class="list-group" id="listgroup" v-model="shoppingItems" @end="syncOrder">
                             <li class="list-group-item" v-for="item in shoppingItems" :id="getItemId(item.id)" :key="item.id" v-on:click="toggleStatus(item.id)" >

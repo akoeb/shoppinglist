@@ -4,10 +4,14 @@ VERSION := latest
 HTTP_USER := my_list_user
 HTTP_PW := supersecretpassword
 
-.PHONY: all run bash rm
+.PHONY: all build compile runlocal run bash rm 
 
 all: runlocal
 
+build:
+	docker build -t $(IMAGE) .
+	foundation build
+	
 compile:
 	go build .
 

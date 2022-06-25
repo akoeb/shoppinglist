@@ -1,12 +1,12 @@
 # STEP 1 build executable binary
-FROM golang:alpine as builder
+FROM golang:1.16-alpine as gobuilder
 
 # Install SSL ca certificates
-RUN apk update && apk add git && apk add ca-certificates && apk add build-base && apk add --update nodejs nodejs-npm && apk add python2
+RUN apk update && apk add ca-certificates build-base
 
 # Create appuser
 RUN adduser -D -g '' appuser
-COPY . $GOPATH/src/github.com/akoeb/shoppinglist/
+COPY backend $GOPATH/src/github.com/akoeb/shoppinglist/
 WORKDIR $GOPATH/src/github.com/akoeb/shoppinglist/
 
 # get dependancies for go
@@ -15,19 +15,30 @@ RUN go get -d -v
 # build the binary
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -tags netgo -ldflags='-w -extldflags "-static"' -o /go/bin/shoppinglist
 
+
+# STEP 2: frontend builder
+FROM node:15-alpine as nodebuilder
+
+COPY frontend /home/node
+
+RUN chown -R node:node /home/node
+
+USER node
+WORKDIR /home/node
+
 # get dependencies and install frontend
-RUN  npm install && node_modules/.bin/foundation build
+RUN  npm install && npm run build-prod
 
 
-# STEP 2 build a small image
+# STEP 3 build a small image
 # start from alpine to have a shell in the image, for the entry point
 FROM alpine
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=gobuilder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=gobuilder /etc/passwd /etc/passwd
 
 # Copy our static executable
-COPY --from=builder /go/bin/shoppinglist /shoppinglist
-COPY --from=builder /go/src/github.com/akoeb/shoppinglist/public /public
+COPY --from=gobuilder /go/bin/shoppinglist /shoppinglist
+COPY --from=nodebuilder /home/node/dist /public
 ENV DATABASE_FILE="/data/shoppinglist.db"
 ENV DOMAIN="localhost"
 ENV HTTP_USER=""

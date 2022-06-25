@@ -1,0 +1,56 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  IMAGE: akoeb/shoppinglist
+  NAME: shoppinglist
+  HTTP_USER: test
+  HTTP_PW: test
+
+tasks:
+  default:
+    deps: [run-frontend, run-backend]
+    cmds:
+      - echo "running"
+
+  build-backend:
+    dir: backend
+    cmds:
+      - go build .
+
+  run-backend:
+    deps: [build-backend]
+    dir: backend
+    cmds:
+      - ./shoppinglist --db shoppinglist.db 
+
+  clean-backend:
+    dir: backend
+    cmds:
+      - rm shoppinglist
+
+  build-frontend:
+    dir: frontend
+    cmds:
+      - npm run build-prod
+
+  run-frontend:
+    dir: frontend
+    cmds:
+      - npm run start 
+
+  clean-frontend:
+    dir: frontend
+    cmds:
+      - npm run clean 
+
+  build-docker:
+    cmds:
+      - docker build -t {{.IMAGE}} -f docker/Dockerfile .
+  
+  run-docker:
+    cmds:
+      - docker run --rm --name {{.NAME}} -v {{.PWD}}/backend/shoppinglist.db:/data/shoppinglist.db -p 8080:8080 -e HTTP_USER="{{.HTTP_USER}}" -e HTTP_PASSWORD="{{.HTTP_PW}}" {{.IMAGE}}
+
+  

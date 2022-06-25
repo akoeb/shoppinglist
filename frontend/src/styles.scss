@@ -1,0 +1,19 @@
+
+$body-color: #8AB32D;
+$body-bg: #4B4EA3;
+
+// get all the bootstrap stuff:
+@import "node_modules/bootstrap/scss/bootstrap";
+
+.mybtn {
+  // button-variant($btn-primary-color, $btn-primary-bg, $btn-primary-border)
+  @include button-variant($body-color, $body-bg, $body-bg);
+  color:$body-bg;
+}
+
+.status-checked {
+  text-decoration: line-through;
+}
+.list-group-item {
+  background-color:$body-bg;
+ }
