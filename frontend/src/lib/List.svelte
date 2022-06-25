@@ -47,7 +47,9 @@ import  {httpOptions, backend} from '../util';
    */
 
   onMount( () => {
+    setupStream()
 		loadAll()
+
 	});
 
 
@@ -171,6 +173,27 @@ import  {httpOptions, backend} from '../util';
       })
       .catch((err) => console.log(err))
   };
+
+  // Server-Sent Events:
+  // setup event stream for listening on updates
+  const setupStream = () => {
+    let es = new EventSource(backend('events'));
+    es.onmessage = function(event) {
+        console.log("SSE Event received: " + JSON.stringify(event.data))
+        let data = JSON.parse(event.data);
+        if (data.cmd == 'UPDATE') {
+            loadAll()
+        }
+    }
+
+    es.addEventListener('error', event => {
+        if (event.readyState == EventSource.CLOSED) {
+            console.log('Event was closed');
+            console.log(EventSource);
+        }
+    }, false);
+
+}
 
 </script>
 

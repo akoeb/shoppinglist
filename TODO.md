@@ -1,5 +1,4 @@
 # TODO #
-
 * bulma css lib
 * make it nicer
 * trash button to the right
