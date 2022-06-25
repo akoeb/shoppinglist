@@ -33,12 +33,12 @@ tasks:
   build-frontend:
     dir: frontend
     cmds:
-      - npm run build-prod
+      - npm run build
 
   run-frontend:
     dir: frontend
     cmds:
-      - npm run start 
+      - npm run dev 
 
   clean-frontend:
     dir: frontend

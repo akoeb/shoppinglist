@@ -17,7 +17,7 @@ RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -tags n
 
 
 # STEP 2: frontend builder
-FROM node:15-alpine as nodebuilder
+FROM node:16.14-alpine as nodebuilder
 
 COPY frontend /home/node
 
@@ -27,7 +27,7 @@ USER node
 WORKDIR /home/node
 
 # get dependencies and install frontend
-RUN  npm install && npm run build-prod
+RUN  npm install && npm run build
 
 
 # STEP 3 build a small image
