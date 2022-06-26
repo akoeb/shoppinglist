@@ -1,30 +1,35 @@
 
 <div>
-  <form on:submit|preventDefault={addItem}>
-    <label for="name">Add an item</label>
-    <input id="name" type="text" bind:value={newItem.title} />
-  </form>
+    <div class="container">
+      <ul class="list is-pulled-right">
+        {#each items as item, index (item.title)}
+          <li 
+            class="list-item columns"
+            animate:flip
+            on:click="{toggleStatus(item.id)}" 
+            draggable={true}
+            on:dragstart={event => dragstart(event, index)}
+            on:drop|preventDefault={event => drop(event, index)}
+            ondragover="return false"
+            on:dragenter={() => hovering = index}
+            class:is-active={hovering === index}>
 
-  <ul class="list">
-    {#each items as item, index (item.title)}
-      <li 
-        class="list-item"
-        on:click="{toggleStatus(item.id)}" 
-        draggable={true}
-        on:dragstart={event => dragstart(event, index)}
-        on:drop|preventDefault={event => drop(event, index)}
-        ondragover="return false"
-        on:dragenter={() => hovering = index}
-        class:is-active={hovering === index}>
-
-        <!-- input type="checkbox" bind:checked={item.done} / -->
-        <span class:checked="{item.status === 'CLOSED'}">{item.title}</span>
-        <button on:click={() => deleteItem(item.id)}>&times;</button>
-      </li>
-    {:else}
-	    <p>The list is empty</p>
-    {/each}
-  </ul>
+            <!-- input type="checkbox" bind:checked={item.done} / -->
+            <span class="column is-11" class:checked="{item.status === 'CLOSED'}">{item.title}</span>
+            <button class="column is-1" on:click={() => deleteItem(item.id)}><Icon data={trash} class="no-pad"/></button>
+          </li>
+        {:else}
+          <p>The list is empty</p>
+        {/each}
+      </ul>
+    </div>
+    <p class="columns column is-12"></p>
+    
+    <div class="columns mt-5 mr-2 ml-2">
+        <input id="newItemTitle" type="text" class="input column is-10 mr-1" bind:value={newItem.title} placeholder="New Item" />
+        <button class="button is-link column is-2" on:click="{addItem}">Submit</button>
+    </div>
+  
 </div>
 
 
@@ -33,6 +38,8 @@
 import { onMount } from 'svelte';
 import {flip} from 'svelte/animate';
 import  {httpOptions, backend} from '../util';
+import Icon from "svelte-awesome";
+import trash from 'svelte-awesome/icons/trash'
 
 
   // the list of items to be bought:
@@ -71,13 +78,13 @@ import  {httpOptions, backend} from '../util';
       newTracklist.splice(target, 0, newTracklist[start]);
       newTracklist.splice(start + 1, 1);
     }
-    items = newTracklist
+    // items = newTracklist
     hovering = null
 
     // sync to server
     let reorder = {}
     let count = 0;
-    items.forEach(function(x, idx) {
+    newTracklist.forEach(function(x, idx) {
       count ++
       reorder[x.id] = count
     })
@@ -86,7 +93,7 @@ import  {httpOptions, backend} from '../util';
     .then((res)  => res.json())
     .then((json) => {
       // successful backend request returns a orordered items array, reflect it in page:
-      //items = json.items ? json.items : []
+      items = json.items ? json.items : []
     })
     .catch((err) => console.error(err))
 
@@ -148,7 +155,7 @@ import  {httpOptions, backend} from '../util';
         // assign array to itself to trigger svelte reactivity:
         items = items;
       })
-      .catch((err) =>  console.log(err))
+      .catch((err) =>  console.error(err))
   }
 
   // update status
@@ -171,7 +178,7 @@ import  {httpOptions, backend} from '../util';
           // assign array to itself to trigger svelte reactivity:
           items = items;
       })
-      .catch((err) => console.log(err))
+      .catch((err) => console.error(err))
   };
 
   // Server-Sent Events:
@@ -179,7 +186,6 @@ import  {httpOptions, backend} from '../util';
   const setupStream = () => {
     let es = new EventSource(backend('events'));
     es.onmessage = function(event) {
-        console.log("SSE Event received: " + JSON.stringify(event.data))
         let data = JSON.parse(event.data);
         if (data.cmd == 'UPDATE') {
             loadAll()
@@ -199,14 +205,18 @@ import  {httpOptions, backend} from '../util';
 
 <style>
 .list {
-  background-color: white;
   border-radius: 4px;
   box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.1);
+  width: 80%;
+  padding-bottom: 0.8em;
 }
 
 .list-item {
-  display: block;
-  padding: 0.5em 1em;
+  
+  padding: 0.5em;
+  margin: 0 1em;
+  text-align: left;
+
 }
 
 .list-item:not(:last-child) {
@@ -219,5 +229,8 @@ import  {httpOptions, backend} from '../util';
 }
 span.checked {
   text-decoration: line-through;
+}
+.no-pad {
+  padding:0;
 }
 </style>
