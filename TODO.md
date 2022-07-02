@@ -1,7 +1,4 @@
 # TODO #
-* bulma css lib
-* make it nicer
-* trash button to the right
 
 # In Files #
 * frontend/src/lib/List.svelte:  // TODO: if dropped outside the ul, show more precisely that this was outside the range

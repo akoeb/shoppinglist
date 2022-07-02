@@ -113,6 +113,49 @@ func updateItem(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
 	}
 }
 
+// POST /items/:id/shop/:sid assigns item :id to shop :sid
+func assignItemToShop(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		// get parameter
+		itemId, err := strconv.Atoi(ctx.Param("id"))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid Path Parameter itemid")
+		}
+
+		shopId, err := strconv.Atoi(ctx.Param("sid"))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid Path Parameter shopid")
+		}
+		item, err := GetItemByID(db, itemId)
+		if err != nil {
+			ctx.Logger().Infof("assignItemtoShop: Database Error in getting Item %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not read item")
+		}
+		shop, err := GetShopByID(db, shopId)
+		if err != nil {
+			ctx.Logger().Infof("assignItemtoShop: Database Error in getting Shop %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not read shop")
+		}
+
+		// overwrite shop in item:
+		item.Shop = shop.ID
+
+		// save to database
+		err = UpsertItem(db, &item)
+		if err != nil {
+			ctx.Logger().Infof("updateItem: Database Error %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not change item")
+
+		}
+
+		// looks fine, notify all the listening clients:
+		notifier.Send("UPDATE")
+
+		// and inform the client
+		return ctx.NoContent(http.StatusNoContent)
+	}
+}
+
 // DELETE /:id/ deletes one item
 func deleteOneItem(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
@@ -245,5 +288,126 @@ func eventsStream(notifier *Notifier) echo.HandlerFunc {
 			}
 			ctx.Response().Flush()
 		}
+	}
+}
+
+// GET /shops - show all shops registered
+func showAllShops(db *sql.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		shop, err := GetAllShops(db)
+		if err != nil {
+			ctx.Logger().Infof("showAllShops: Database Error %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not read shops")
+		}
+		return ctx.JSON(http.StatusOK, shop)
+	}
+}
+
+// GET /shops/:id - get one shop
+func showOneShop(db *sql.DB) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		id, err := strconv.Atoi(ctx.Param("id"))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid Path Parameter")
+		}
+		shop, err := GetShopByID(db, id)
+		if err != nil {
+			ctx.Logger().Infof("showOneShop: Database Error %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not read shop")
+		}
+		return ctx.JSON(http.StatusOK, shop)
+	}
+}
+
+// POST /shops create a shop
+func createShop(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		shop := &Shop{}
+
+		// bind body into struct
+		err := ctx.Bind(shop)
+		if err != nil {
+			ctx.Logger().Infof("createShop: Bind Error with request %v: %v", ctx.Request().Body, err)
+			return echo.NewHTTPError(http.StatusBadRequest, "Wrong Input")
+		}
+
+		// creates can not have an id
+		if shop.ID > 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "Can not create shop that has an id")
+		}
+
+		// write to db
+		err = UpsertShop(db, shop)
+		if err != nil {
+			ctx.Logger().Infof("createShop: Database Error %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not write shop")
+		}
+
+		// looks fine, notify all the listening clients:
+		notifier.Send("UPDATE")
+
+		// return the modified item with new id:
+		return ctx.JSON(http.StatusOK, shop)
+	}
+}
+
+// PUT /shops/:id modify a shop
+func updateShop(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		// read parameter
+		id, err := strconv.Atoi(ctx.Param("id"))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid Path Parameter")
+		}
+
+		// bind body into struct
+		shop := &Shop{}
+		err = ctx.Bind(&shop)
+		if err != nil {
+			ctx.Logger().Infof("updateShop: Bind Error with request %v: %v", ctx.Request().Body, err)
+			return echo.NewHTTPError(http.StatusBadRequest, "Wrong Input")
+		}
+		// some validation
+		if shop.ID != id {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Errorf("shop with id %d can not be updated in path with id %d", shop.ID, id))
+		}
+
+		// do database operation
+		err = UpsertShop(db, shop)
+		if err != nil {
+			ctx.Logger().Infof("updateItem: Database Error %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not change item")
+
+		}
+
+		// looks fine, notify all the listening clients:
+		notifier.Send("UPDATE")
+
+		// inform the client
+		return ctx.JSON(http.StatusOK, shop)
+	}
+}
+
+// DELETE /shops/:id - delete a shop
+func deleteOneShop(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
+	return func(ctx echo.Context) error {
+		// get parameter
+		id, err := strconv.Atoi(ctx.Param("id"))
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid Path Parameter")
+		}
+
+		// do the database magic
+		_, err = DeleteShopByID(db, id)
+		if err != nil {
+			ctx.Logger().Infof("deleteShop: Database Error %v", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Could not delete shop")
+		}
+
+		// looks fine, notify all the listening clients:
+		notifier.Send("UPDATE")
+
+		// and inform the client
+		return ctx.NoContent(http.StatusNoContent)
 	}
 }

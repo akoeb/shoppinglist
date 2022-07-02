@@ -111,7 +111,7 @@ func main() {
 	e.Static("/", "public")
 
 	// apis have their own middlewares: group them
-	apis := e.Group("/items")
+	apis := e.Group("/api")
 
 	// only allow application/json content type:
 	apis.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -124,14 +124,22 @@ func main() {
 		}
 	})
 
-	// Routes
-	apis.GET("", showAllItems(db))
-	apis.GET("/:id", showOneItem(db))
-	apis.POST("", createItem(db, notifier))
-	apis.POST("/reorder", reorderItems(db, notifier))
-	apis.PUT("/:id", updateItem(db, notifier))
-	apis.DELETE("/:id", deleteOneItem(db, notifier))
-	apis.DELETE("", deleteManyItems(db, notifier))
+	// Routes for items
+	apis.GET("/items", showAllItems(db))
+	apis.GET("/items/:id", showOneItem(db))
+	apis.POST("/items", createItem(db, notifier))
+	apis.POST("/items/reorder", reorderItems(db, notifier))
+	apis.PUT("/items/:id", updateItem(db, notifier))
+	apis.POST("/items/:id/shop/:sid", assignItemToShop(db, notifier))
+	apis.DELETE("/items/:id", deleteOneItem(db, notifier))
+	apis.DELETE("/items", deleteManyItems(db, notifier))
+
+	// Routes for shops
+	apis.GET("/shops", showAllShops(db))
+	apis.GET("/shops/:id", showOneShop(db))
+	apis.POST("/shops", createShop(db, notifier))
+	apis.PUT("/shops/:id", updateShop(db, notifier))
+	apis.DELETE("/shops/:id", deleteOneShop(db, notifier))
 
 	// events
 	events := e.Group("/events")
