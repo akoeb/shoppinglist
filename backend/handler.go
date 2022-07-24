@@ -138,7 +138,7 @@ func assignItemToShop(db *sql.DB, notifier *Notifier) echo.HandlerFunc {
 		}
 
 		// overwrite shop in item:
-		item.Shop = shop.ID
+		item.Shop = &shop
 
 		// save to database
 		err = UpsertItem(db, &item)

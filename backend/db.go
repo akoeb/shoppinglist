@@ -34,7 +34,8 @@ func migrate(db *sql.DB) {
     CREATE TABLE IF NOT EXISTS shops(
         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         name VARCHAR NOT NULL,
-        color VARCHAR 
+        color VARCHAR,
+		orderno INTEGER NOT NULL 
     );
     `
 

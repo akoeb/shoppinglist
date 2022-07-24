@@ -24,7 +24,7 @@ type Item struct {
 	Title   string `json:"title"`
 	Status  string `json:"status"`
 	Orderno int    `json:"orderno"`
-	Shop    int    `json:"shop_id"`
+	Shop    *Shop  `json:"shop,omitempty"`
 }
 
 // Valid tells you whether an item is valid
@@ -72,10 +72,18 @@ func GetAllItems(db *sql.DB) (ItemCollection, error) {
 
 	for rows.Next() {
 		item := Item{}
-		err = rows.Scan(&item.ID, &item.Title, &item.Status, &item.Orderno)
+		var shopid int
+		err = rows.Scan(&item.ID, &item.Title, &item.Status, &item.Orderno, &shopid)
 		// Exit if we get an error
 		if err != nil {
 			return result, err
+		}
+		if shopid > 0 {
+			shop, err := GetShopByID(db, shopid)
+			if err != nil {
+				return result, err
+			}
+			item.Shop = &shop
 		}
 		result.Items = append(result.Items, item)
 	}
@@ -85,6 +93,7 @@ func GetAllItems(db *sql.DB) (ItemCollection, error) {
 // GetItemByID loads one item from database, identified by its id
 func GetItemByID(db *sql.DB, id int) (Item, error) {
 	result := Item{}
+	var shopid int
 	sql := "SELECT id, title, status, orderno, shop_id FROM items WHERE id = ?"
 	rows, err := db.Query(sql, id)
 	// Exit if the SQL doesn't work for some reason
@@ -95,11 +104,19 @@ func GetItemByID(db *sql.DB, id int) (Item, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		err = rows.Scan(&result.ID, &result.Title, &result.Status, &result.Orderno)
+		err = rows.Scan(&result.ID, &result.Title, &result.Status, &result.Orderno, &shopid)
 		// Exit if we get an error
 		if err != nil {
 			return result, err
 		}
+		if shopid > 0 {
+			shop, err := GetShopByID(db, shopid)
+			if err != nil {
+				return result, err
+			}
+			result.Shop = &shop
+		}
+
 	}
 	return result, nil
 }
@@ -131,10 +148,17 @@ func UpsertItem(db *sql.DB, item *Item) error {
 
 	// Execute
 	var result sql.Result
+
+	// if shop is not nil, extract shopid
+	var shopId int
+	if item.Shop != nil {
+		shopId = item.Shop.ID
+	}
+
 	if doInsert {
-		result, err = stmt.Exec(item.Title, item.Status, item.Orderno)
+		result, err = stmt.Exec(item.Title, item.Status, item.Orderno, shopId)
 	} else {
-		result, err = stmt.Exec(item.Title, item.Status, item.Orderno, item.ID)
+		result, err = stmt.Exec(item.Title, item.Status, item.Orderno, shopId, item.ID)
 	}
 	// Exit if we get an error
 	if err != nil {

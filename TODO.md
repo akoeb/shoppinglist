@@ -8,11 +8,10 @@
 
 # new features #
 
-* add shops of items with shop name
-* shop define items color
-* add items to shops via drag and drop (show shops on page to the left)
-* filter by shops by clicking on shop (unfilter by additional click)
 * offline usage: store the list on the deice, resync as son as device gets online again
 * add shoprtcuts: pre-defined item sets that can be added with one click
 
-
+* visually show when active shop filter is in effect
+* fix highlighting of items / shops on dragenter / dragleave
+* reorder shops
+* change drag & drop behaviour to add dropzone when dragged (shops and items)

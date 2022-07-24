@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "svelte-dragdroplist": "^1.1.1"
+  }
+}
