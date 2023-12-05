@@ -21,7 +21,7 @@ export const backend = (path) => {
   let env = process.env.NODE_ENV;
   let url = "http://localhost:8080/";
   if (env === "production") {
-    url = "/";
+    url = "https://koeb.me/list/";
   }
   console.log("call to backend: " + url + path + " (" + env + ")");
   return url + path;
