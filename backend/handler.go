@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 )
 
 // Handler
@@ -75,11 +75,8 @@ func eventsStream(notifier *Notifier) echo.HandlerFunc {
 
 		}
 
-		// close notifier to clean up notifier channel if connection closes:
-
-		closeNotify := ctx.Response().CloseNotify()
 		go func() {
-			<-closeNotify
+			<-ctx.Request().Context().Done()
 			// connection close, do cleanup
 			ctx.Logger().Infof("eventsStream: close notify triggered")
 			notifier.RemoveReceiver(receiverID)
