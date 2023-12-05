@@ -1,4 +1,12 @@
 <script>
+// This lib was stolen from https://github.com/jwlarocque/svelte-dragdroplist/blob/master/DragDropList.svelte
+// My commit was:a59593c37a1640b185d3de2a68b67518c08198e5
+// The commit that I used from orig was 840744a70c571f884fb750fd83b36d4080f38050
+// 
+// I could not simply reference this lib, since I needed to overwrite the drop method.AddItem
+// Following changes:
+// 
+    
     import {flip} from "svelte/animate";
 import AddItem from "./AddItem.svelte";
     

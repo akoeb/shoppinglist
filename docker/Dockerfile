@@ -1,5 +1,5 @@
 # STEP 1 build executable binary
-FROM golang:1.16-alpine as gobuilder
+FROM golang:1.21-alpine as gobuilder
 
 # Install SSL ca certificates
 RUN apk update && apk add ca-certificates build-base
@@ -36,13 +36,20 @@ FROM alpine
 COPY --from=gobuilder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=gobuilder /etc/passwd /etc/passwd
 
-# Copy our static executable
+# Copy our static files
 COPY --from=gobuilder /go/bin/shoppinglist /shoppinglist
 COPY --from=nodebuilder /home/node/dist /public
 ENV DATABASE_FILE="/data/shoppinglist.db"
 ENV DOMAIN="localhost"
 ENV HTTP_USER=""
 ENV HTTP_PASSWORD=""
+ENV ENVIRONMENT="production"
+
+# user and volume:
+RUN mkdir /data \
+    && chown appuser /data \
+    && chmod 700 /data
+
 USER appuser
 VOLUME /data
 CMD /shoppinglist -db /data/shoppinglist.db -domain $DOMAIN -user $HTTP_USER -password $HTTP_PASSWORD

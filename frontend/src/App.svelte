@@ -1,66 +1,86 @@
 <script>
-    import { onMount } from 'svelte';
-    import { backend } from './util';
-    import { loadAllItems } from './lib/item_store.js'
-    import ItemList from './lib/ItemList.svelte'
-    import AddItem from './lib/AddItem.svelte';
-    import ShopList from './lib/ShopList.svelte';
-    import Icon from "svelte-awesome";
-    import basket from 'svelte-awesome/icons/shoppingBasket'
+  import { onMount } from "svelte";
+  import { backend } from "./util";
+  import ItemList from "./lib/ItemList.svelte";
+  import ShopList from "./lib/ShopList.svelte";
+  import Icon from "svelte-awesome";
+  import basket from "svelte-awesome/icons/shoppingBasket";
 
-    
-    onMount( () => {
-      setupStream()
-	  });
+  let itemListComponent;
+  let shopListComponent;
+  let resetHovering;
+  let filterItemsByShop;
 
+  onMount(() => {
+    // something has been dropped somewhere, reset all active classes:
+    resetHovering = function () {
+      itemListComponent.resetHovering();
+      shopListComponent.resetHovering();
+    };
+    // a shop has been clicked, show only items
+    // from this shop (or reset to show all)
+    filterItemsByShop = function (ev) {
+      itemListComponent.toggleFilterShopId(ev.detail);
+    };
+    // we initialize the sync from backend to both stores
+    itemListComponent.getFromBackend();
+    shopListComponent.getFromBackend();
 
-    // Server-Sent Events:
-    // setup event stream for listening on updates
-    const setupStream = () => {
-        let es = new EventSource(backend('events'));
-        es.onmessage = function(event) {
-            let data = JSON.parse(event.data);
-            if (data.cmd == 'UPDATE') {
-              // tell ItemList and ShopList components to reload their lists
-              loadAllItems()
-            }
+    // and we setup an event stream to get notified if someone else changes something
+    setupStream();
+  });
+
+  // Server-Sent Events:
+  // setup event stream for listening on updates
+  const setupStream = () => {
+    let es = new EventSource(backend("events"));
+    es.onmessage = function (event) {
+      let data = JSON.parse(event.data);
+      if (data.cmd == "UPDATE") {
+        // tell ItemList and ShopList components to reload their lists
+        itemListComponent.getFromBackend();
+        shopListComponent.getFromBackend();
+      }
+    };
+
+    es.addEventListener(
+      "error",
+      (event) => {
+        if (event.readyState == EventSource.CLOSED) {
+          console.log("Event was closed");
+          console.log(EventSource);
         }
-
-        es.addEventListener('error', event => {
-            if (event.readyState == EventSource.CLOSED) {
-                console.log('Event was closed');
-                console.log(EventSource);
-            }
-        }, false);
-    }
-
-
-
+      },
+      false
+    );
+  };
 </script>
 
-
+<svelte:body
+  on:drop={resetHovering}
+  on:dragover={(ev) => {
+    ev.preventDefault();
+  }}
+/>
 <main>
+  <h1>Shopping List&nbsp;<Icon data={basket} scale="2" /></h1>
 
-  <h1>Shopping List&nbsp;<Icon data={basket} scale="2"/></h1>
-
-  <ItemList />
+  <ItemList bind:this={itemListComponent} on:resetHovering={resetHovering} />
   <p class="columns column is-12"></p>
-  <AddItem />
   <p class="columns column is-12"></p>
-  <ShopList />
-  
-  
-
+  <ShopList
+    bind:this={shopListComponent}
+    on:resetHovering={resetHovering}
+    on:filterItemsByShop={filterItemsByShop}
+  />
 </main>
 
 <style>
-
   main {
     text-align: center;
     padding: 1em;
     margin: 0 auto;
   }
-
 
   h1 {
     color: #ff3e00;

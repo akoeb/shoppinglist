@@ -1,9 +1,34 @@
-import { writable, get } from 'svelte/store'
-import {backend, httpOptions} from '../util'
+import { writable, get } from "svelte/store";
+import { backend, httpOptions } from "../util";
 
-export let shopStore = writable([]);
+// Get the value out of storage on load.
+const data = JSON.parse(localStorage.getItem("shopStore"));
 
+export let shopStore = writable(data || { items: [], version: 0 });
 
+// Anytime the store changes, update the local storage value.
+shopStore.subscribe((value) => {
+  if (value.local) {
+    delete value.local;
+    const version = Date.now();
+    value.version = version;
+    // trigger sync with backend
+    pushToBackend(value);
+  }
+  localStorage.setItem("shopStore", JSON.stringify(value));
+});
+
+// function to sync changes to backend and local store:
+async function pushToBackend(shopList) {
+  // then sync to backend:
+  await fetch(backend("api/shops/sync"), httpOptions("POST", shopList)).catch(
+    (err) => console.error(err)
+  );
+}
+
+/*
+// initialize or overwrite the store with contents from backend
+// can be called from outside on mount or on receiving of change messages
 export const loadAllShops = () => {
        
     fetch(backend('api/shops'), httpOptions())
@@ -13,7 +38,9 @@ export const loadAllShops = () => {
       })
       .catch((err) => console.error(err))
 }
+*/
 
+/*
 export const addShopToStore = (newShop) => {
     let shops = get(shopStore)
     // now send it to backend
@@ -44,3 +71,4 @@ export const deleteShopFromStore = (shopId) => {
   })
   .catch((err) =>  console.error(err))
 }
+*/
