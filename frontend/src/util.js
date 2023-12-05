@@ -23,7 +23,6 @@ export const backend = (path) => {
   if (env === "production") {
     url = "https://www.koeb.me/list/";
   }
-  console.log("call to backend: " + url + path + " (" + env + ")");
   return url + path;
 };
 
